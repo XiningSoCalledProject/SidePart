@@ -1,0 +1,5 @@
+distribution,shards,n_csv,throughput_txn_s,epoch_ms,tree_height,speedup,model_speedup,efficiency,fanout,imbalance_queries,commit_rate,abort_read_batch_full,partitions
+uniform,1,1,431.92,205.21,16.0,1.0,1.0,1.0,1.000,1.000,0.0276,15558,1
+uniform,2,1,876.15,203.33,15.0,2.029,2.018,1.014,1.000,1.006,0.0555,15112,2
+uniform,4,1,1766.85,202.27,14.0,4.091,4.058,1.023,1.000,1.054,0.1118,14212,4
+uniform,8,1,3650.22,203.75,12.88,8.451,8.057,1.056,1.000,1.118,0.2312,12301,8

@@ -46,20 +46,49 @@ public:
     RingORAM(const uint32_t &n, const uint32_t &buck_size,
              const std::string &pathoram_name, const uint32_t &block_length,
              NetIOConnector* ORAMO, const uint32_t &S_input,
-             uint32_t permanent_stash_reserve = 0);
-             // permanent_stash_reserve: Case B privacy fix — number of real records
-             // that permanently live in the stash because the ORAM tree is sized to
-             // noisy_synopsis < real_count.  Default 0 = no permanent stash entries
-             // (Case A, or any caller that doesn't use the DP partitioning path).
+             uint32_t noise_stash_reserve = 0);
+             // noise_stash_reserve (renamed 9/22/26 from permanent_stash_reserve):
+             //   EXTRA CLIENT-SIDE STASH CAPACITY to reserve because negative DP
+             //   noise made the tree smaller than the real record count:
+             //       noise_stash_reserve = max(0, n − ñ)
+             //   It is headroom, NOT a fixed set of records pinned in the stash —
+             //   records move between stash and tree with normal eviction.  The
+             //   privacy invariant is only |tree capacity| = ñ and
+             //   all real records ⊆ tree ∪ stash.
+             //   Default 0 = Case A, or any caller not using DP partitioning.
 
     // core ORAM interface
     std::string access(uint32_t block_id, OpType op, const std::string& data_in);
+
+    // Batched execution (10/8/26).  Runs the ops in order exactly as
+    // access() would — same slot choices, reshuffles, evictions, same
+    // metadata and stash — but with the connector in deferred mode, so the
+    // whole batch costs ONE read round trip (all slot reads) plus one
+    // streamed write burst, instead of ~2 round trips per access.  The
+    // server sees the same multiset of slot reads and writes, ordered
+    // "all reads of the batch, then all writes" (Obladi's batch model).
+    // Returns one entry per op: READ -> plaintext, UPDATE/INSERT -> "".
+    struct BatchOp { uint32_t block_id; OpType op; std::string data; };
+    std::vector<std::string> access_batch(const std::vector<BatchOp>& ops);
     void insert(string block, uint32_t block_id);
     void EarlyReshuffle(uint32_t Path_ID);
     void EvictPath();
     std::string prepare_block_data(uint32_t block_id, const std::string& value);
     void WriteBucket(uint32_t bucket_idx);
     void ReadBucket(uint32_t bucket_idx);
+    // Batched (10/8/26): all valid slots of these buckets, one round trip.
+    void ReadBuckets(const std::vector<uint32_t>& bucket_idxs);
+
+    // Server-side key of slot `slot` of bucket `bucket` (10/8/26).
+    // Was bucket*bucket_size*block_size + slot*block_size: a BYTE offset in a
+    // uint32_t, which wraps once the tree exceeds 4 GiB (e.g. 2^21 buckets x
+    // 8 slots x 706 B = 11.8 GB for a TPC-C shard) and makes different slots
+    // share one server key — later writes silently overwrite other slots.
+    // The listener treats the id as an opaque map key, so a slot INDEX works
+    // unchanged and fits in 32 bits for any tree below 2^32 slots.
+    uint32_t slotKey(uint32_t bucket, uint32_t slot) const {
+        return bucket * bucket_size + slot;
+    }
     std::string ReadPath(uint32_t PathID, std::pair <uint32_t, uint32_t> block_chunk_id);
     uint32_t get_leaf_from_pos_map(uint32_t block_id);
 
@@ -76,10 +105,10 @@ public:
     uint32_t stash_high_watermark = 0;   // tracks peak stash occupancy across the lifetime
 
     // Post-initialization eviction helper.
-    // After inserting all records, the stash may hold more than A entries
-    // (especially when stash_overflow records were kept in stash intentionally).
-    // Call this once after initialization to drain the stash down to ≤ A entries
-    // before the ORAM starts serving live queries.
+    // Drains the stash towards A entries — as far as the tree physically
+    // allows.  When the tree is full (Case B, ñ < n) eviction stops making
+    // progress and the leftover (≈ n − ñ) simply stays in the stash; which
+    // records those are is not fixed.  Call once after initialization.
     void flush_stash_if_needed();
 
     // Read-only stash size (for external monitoring / assertions).
@@ -179,7 +208,21 @@ private:
     std::unordered_map<uint32_t, RingBucket> buckets;
     std::unordered_map<uint32_t, BucketBlock> bucket_blockdata;
     uint32_t stash_limit;
-    uint32_t permanent_stash_reserve_ = 0;  // Case B: records that permanently live
-                                             // in the stash (tree sized to noisy < real)
+    uint32_t noise_stash_reserve_ = 0;   // Case B headroom: extra stash CAPACITY
+                                         // reserved when the tree is sized to
+                                         // noisy < real.  Not a pinned record set.
     void stash_insert(uint32_t block_id, uint32_t chunk_id, const std::string& data);
+
+    // ── Direct bulk placement (9/26/26) ────────────────────────────────────
+    // After bulk_load_stash(), the first call to generate_one_dummy_slot()
+    // assigns every stashed chunk to the DEEPEST bucket on its own path that
+    // still has a free real slot, and the tree stream then carries those
+    // ciphertexts in place of dummies.  The stash is left (almost) empty, so
+    // flush_stash_if_needed() has nothing to do.  Replaces the O(N^2) drain
+    // (EvictPath -> WriteBucket scans the whole stash per bucket).
+    // Disable with env DEPART_BULK_DIRECT=0 to get the old behaviour.
+    bool defer_decrypt_ = false;   // access(READ) returns ciphertext (access_batch)
+    bool bulk_placed_ = false;
+    std::unordered_map<uint32_t, std::vector<std::pair<uint32_t, uint32_t>>> bulk_bucket_assign_;
+    void bulk_place_stash_into_tree_();
 };

@@ -1,0 +1,6 @@
+epsilon,partitions,affinity_cut,fanout,epochs,committed,aborted,inserts,ioo_accesses,ioo_capacity,real_total,noisy_total,dummy_total,stash_reserve_total,refreshes,epochs_between_refreshes,refresh_frequency,mean_refresh_pause_ms,total_refresh_ms,amortized_refresh_pct,epoch_ms_total,throughput_txn_s,throughput_txn_s_with_refresh,partitions_max,cap_T,placement
+0,4,0.744430,2.300667,8,5854,6946,1978,0,4096,20000,20000,0,0,0,0.000,0.000,0.00,0.00,0.00,1886.28,3103.47,3103.47,4,0.00,random
+0.50,4,0.085784,1.128333,8,5824,6976,1972,0,4119,20000,20019,23,4,1,8.000,0.125,459.73,459.73,19.68,1876.64,3103.42,2492.75,4,0.00,dpart
+1.00,4,0.085784,1.128333,8,5911,6889,1972,0,4106,20000,20007,10,3,1,8.000,0.125,462.16,462.16,19.77,1875.88,3151.06,2528.19,4,0.00,dpart
+1.50,4,0.085784,1.128333,8,5843,6957,1972,0,4104,20000,20008,8,0,1,8.000,0.125,457.65,457.65,19.66,1870.56,3123.66,2509.65,4,0.00,dpart
+2.00,4,0.085784,1.128333,8,5879,6921,1972,0,4096,20000,19989,0,11,1,8.000,0.125,462.61,462.61,19.80,1874.01,3137.12,2516.02,4,0.00,dpart

@@ -23,9 +23,6 @@
 // Access the shared queue globals defined in Queries_Receiving.cpp
 // (These are what real TCP client handlers would push into)
 // ============================================================================
-extern std::mutex              queue_mu_;
-extern std::vector<txn>        incoming_queue_;
-extern std::atomic<bool>       accepting_;
 
 // ============================================================================
 // Helpers
@@ -51,11 +48,14 @@ Operat make_op(OpType type, uint32_t key, const std::string& val,
     return op;
 }
 
-// Simulate a client: push a pre-built txn into the shared queue
-void push_txn(const txn& t) {
-    if (!accepting_.load()) return;
-    std::lock_guard<std::mutex> lk(queue_mu_);
-    incoming_queue_.push_back(t);
+// Simulate a client: push a pre-built txn through the public intake API.
+// (The queue used to be file-scope globals; it is now private state of
+// QueriesReceiving, which is what fixed the lost-txn race.)
+void push_txn(QueriesReceiving& qr, const txn& t) {
+    for (int i = 0; i < 2000; ++i) {                 // intake opens inside collect_epoch()
+        if (qr.push_txn(t)) return;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
 }
 
 void print_txns(const std::vector<txn>& txns) {
@@ -73,20 +73,19 @@ void print_txns(const std::vector<txn>& txns) {
 }
 
 void print_version_chains(
-    const std::map<std::pair<int, uint32_t>, std::vector<Operat>>& vc) {
+    const std::map<ObjectKey, std::vector<Operat>>& vc) {
     std::cout << "\n===== Final Version Chains =====\n";
     if (vc.empty()) {
         std::cout << "  (empty)\n";
         return;
     }
-    // ── FIX (4/27/26): VC key is now (server_id, primary_key) ────────────
-    // Was: keyed by primary_key alone (uint32_t).
-    // The new key prevents cross-partition same-PK collisions.
+    // ── FIX (9/22/26): the VC key is now the logical ObjectKey ──────────
+    // (table_id, w_id, d_id, logical_id) — the same identity the ORAM
+    // pos_map uses.  server_id is placement, not identity, so it is no
+    // longer part of the key.
     for (auto& [vc_key, ops] : vc) {
-        int      server_id = vc_key.first;
-        uint32_t pk        = vc_key.second;
-        std::cout << "\n  Key = (server=" << server_id << ", pk=" << pk
-                  << ") (" << ops.size() << " ops):\n";
+        std::cout << "\n  Key = " << vc_key.str()
+                  << " (" << ops.size() << " ops):\n";
         for (size_t i = 0; i < ops.size(); i++) {
             auto& op = ops[i];
             std::cout << "    [" << i << "] "
@@ -133,9 +132,7 @@ void test_multi_client_no_conflict() {
     for (int c = 0; c < 4; c++) {
         clients.emplace_back([&, c]() {
             // Wait until window opens
-            while (!accepting_.load())
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
-            push_txn(client_txns[c]);
+            push_txn(qr, client_txns[c]);
         });
     }
 
@@ -180,32 +177,26 @@ void test_multi_client_conflict() {
 
     // Client 0: WRITE key=100 (arrives first → smaller ts)
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         // Push immediately when window opens
         txn t;
         t.operations = { make_op(OpType::UPDATE, 100, "write_100", 0, true) };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     // Client 1: READ key=100 (arrives second → larger ts)
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         std::this_thread::sleep_for(std::chrono::milliseconds(10)); // small delay
         txn t;
         t.operations = { make_op(OpType::READ, 100, "", 1, true) };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     // Client 2: WRITE key=200 (no conflict)
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
         txn t;
         t.operations = { make_op(OpType::UPDATE, 200, "write_200", 2, true) };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     auto epoch_txns = qr.collect_epoch(200);
@@ -257,47 +248,39 @@ void test_multi_client_incomplete() {
 
     // Client 0: incomplete txn
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         txn t;
         t.operations = {
             make_op(OpType::READ,   50, "",    0, false),
             make_op(OpType::UPDATE, 50, "v50", 0, false)  // last_one=false!
         };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     // Client 1: complete
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
         txn t;
         t.operations = { make_op(OpType::READ, 60, "", 1, true) };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     // Client 2: complete, multi-op
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         std::this_thread::sleep_for(std::chrono::milliseconds(8));
         txn t;
         t.operations = {
             make_op(OpType::UPDATE, 70, "v70", 2, false),
             make_op(OpType::READ,   80, "",    2, true)
         };
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     // Client 3: incomplete
     clients.emplace_back([&]() {
-        while (!accepting_.load())
-            std::this_thread::sleep_for(std::chrono::microseconds(50));
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
         txn t;
         t.operations = { make_op(OpType::READ, 90, "", 3, false) };  // last_one=false!
-        push_txn(t);
+        push_txn(qr, t);
     });
 
     auto epoch_txns = qr.collect_epoch(200);
@@ -347,8 +330,6 @@ void test_multi_client_stress() {
             std::uniform_real_distribution<double> coin(0.0, 1.0);
 
             // Wait for window
-            while (!accepting_.load())
-                std::this_thread::sleep_for(std::chrono::microseconds(50));
 
             for (int i = 0; i < TXNS_PER_CLIENT; i++) {
                 txn t;
@@ -364,7 +345,7 @@ void test_multi_client_stress() {
                     t.operations.push_back(make_op(type, key, val, c, (q == nops - 1)));
                 }
 
-                push_txn(t);
+                push_txn(qr, t);
                 // Small delay between txns
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }

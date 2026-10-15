@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <functional>    // for std::function (bulk_init_tree_stream)
 #include <arpa/inet.h>  // for htonl, ntohl
+#include <unordered_map>
 
 // ============================================================================
 //  Bulk-init support (added 4/18/26)
@@ -40,6 +41,23 @@ private:
     // individual slot RTTs. A subsequent bulk_init_tree() uploads the
     // entire tree in one send_data call.
     bool silent_ = false;
+
+    // ── Deferred (batched) mode (10/8/26) ───────────────────────────────
+    // Between begin_deferred() and end_deferred() no I/O happens:
+    //   find_slot  -> returns the slot's content if it was written earlier
+    //                 in this batch, else a PLACEHOLDER (block_size bytes:
+    //                 16-byte magic + 8-byte id) and records the fetch;
+    //   insert_slot-> records the write and remembers the content locally.
+    // end_deferred() then fetches every recorded slot in ONE FIND_SLOTS
+    // round trip, replaces placeholders in the recorded writes, streams the
+    // writes (no reply needed), and returns placeholder -> ciphertext so the
+    // caller can resolve its own copies (stash, READ results).
+    bool deferred_ = false;
+    std::vector<std::pair<uint32_t, uint32_t>> d_fetch_;          // {bucket, slot}
+    std::vector<std::pair<uint32_t, std::string>> d_writes_;      // {slot, cipher}
+    std::unordered_map<uint32_t, std::string> d_written_;          // slot -> latest
+    uint32_t d_block_size_ = 0;
+    std::string d_name_;
 
     // ========================================
     // 辅助函数：字符串发送和接收
@@ -111,12 +129,38 @@ public:
         uint32_t block_size
     );
 
+    /**
+     * Batched find_slot (10/8/26), listener opcode 11 (FIND_SLOTS).
+     * reqs[i] = {bucket_id, global_slot_id}; returns the slots in request
+     * order.  One round trip per kFindWindow requests instead of one per
+     * slot.  Needs the listener from the same change (Servers_MultiRingORAM
+     * with opcode 11); an old listener closes the connection on opcode 11.
+     */
+    std::vector<std::string> find_slots(
+        const std::vector<std::pair<uint32_t, uint32_t>>& reqs,
+        const std::string& oram_name,
+        uint32_t block_size
+    );
+    // Max requests per FIND_SLOTS message (reply = kFindWindow x block_size).
+    static constexpr size_t kFindWindow = size_t(1) << 20;   // one message per batch in practice
+
     // ========================================
     //  Bulk init fast-path (4/18/26)
     // ========================================
     //  Used only by TPC-C initialization. When silent_ is on, insert_slot
     //  is a no-op. Use bulk_init_tree to upload all slots in one send.
     //  These are NEW methods; existing code is unchanged.
+
+    // ── Deferred mode (see the private members above) ────────────────
+    void begin_deferred(const std::string& oram_name, uint32_t block_size);
+    // Returns placeholder-id -> fetched ciphertext.
+    std::unordered_map<uint64_t, std::string> end_deferred();
+    bool is_deferred() const { return deferred_; }
+    static constexpr size_t kPlaceholderMagicLen = 16;
+    static bool is_placeholder(const std::string& c, uint64_t* id = nullptr);
+    static std::string make_placeholder(uint64_t id, uint32_t block_size);
+    uint64_t deferred_reads() const { return d_fetch_.size(); }
+    uint64_t deferred_writes() const { return d_writes_.size(); }
 
     void set_silent(bool s) { silent_ = s; }
     bool is_silent() const { return silent_; }

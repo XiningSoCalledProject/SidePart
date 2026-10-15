@@ -7,6 +7,7 @@
 #include "RingORAM_helper.h"
 #include "Config.h"
 #include "TpccSchema.h"
+#include "DataPath.h"
 
 int main() {
     srand((uint32_t)time(NULL));
@@ -16,7 +17,7 @@ int main() {
     auto conn = new NetIOConnector(server_host, port, "RingORAM");
 
     // const std::string base_path = "../Testing/Unit Tests/my_tpcc_input/";
-    const std::string base_path = "/Users/xiningyuan/Desktop/seal-oram-netio-master-copy/Testing/Unit Tests/my_tpcc_input/";
+    const std::string base_path = departDataPath("Testing/Unit Tests/my_tpcc_input/");
 
     testTable(base_path + "warehouse.csv", Tpcc::schema_str_warehouse, conn);
     testTable(base_path + "district.csv", Tpcc::schema_str_district, conn);

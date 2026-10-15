@@ -1,0 +1,49 @@
+algorithm,query_mix,setting,placement,K,n_runs,fanout_all_mean,fanout_all_std,fanout_point_txns_mean,fanout_point_txns_std,fanout_range_txns_mean,fanout_range_txns_std,range_txn_frac_mean,range_txn_frac_std
+Alg3,mix (50% range),skewed_data+matched_queries,DPart,13,27,2.291085,0.023652,2.740896,0.012008,1.83413,0.034074,0.496067,0.009948
+Alg3,mix (50% range),skewed_data+matched_queries,DPart eps=0 (random),13,27,5.393733,0.05961,2.778333,0.008437,8.050467,0.018557,0.496067,0.009948
+Alg3,mix (50% range),skewed_data+mismatched_queries,DPart,13,27,1.372822,0.063498,1.697574,0.120929,1.043148,0.007782,0.496067,0.009948
+Alg3,mix (50% range),skewed_data+mismatched_queries,DPart eps=0 (random),13,27,5.3546,0.028223,2.770567,0.003413,7.9818,0.114232,0.496067,0.009948
+Alg3,mix (50% range),uniform_data+skewed_queries,DPart,16,27,1.6792,0.020131,2.211533,0.013391,1.138367,0.009575,0.496067,0.009948
+Alg3,mix (50% range),uniform_data+skewed_queries,DPart eps=0 (random),16,27,5.691867,0.053293,2.816433,0.006442,8.6134,0.028996,0.496067,0.009948
+Alg3,mix (50% range),uniform_data+uniform_queries,DPart,16,27,2.0194,0.027201,2.811333,0.010099,1.214767,0.018705,0.496067,0.009948
+Alg3,mix (50% range),uniform_data+uniform_queries,DPart eps=0 (random),16,27,5.703933,0.073651,2.8197,0.020044,8.633533,0.036127,0.496067,0.009948
+Alg3,point-only,skewed_data+matched_queries,DPart,13,27,2.742393,0.016697,2.742393,0.016697,,,0.0,0.0
+Alg3,point-only,skewed_data+matched_queries,DPart eps=0 (random),13,27,2.771467,0.005708,2.771467,0.005708,,,0.0,0.0
+Alg3,point-only,skewed_data+mismatched_queries,DPart,13,27,1.71997,0.108594,1.71997,0.108594,,,0.0,0.0
+Alg3,point-only,skewed_data+mismatched_queries,DPart eps=0 (random),13,27,2.77,0.011399,2.77,0.011399,,,0.0,0.0
+Alg3,point-only,uniform_data+skewed_queries,DPart,16,27,2.201667,0.006481,2.201667,0.006481,,,0.0,0.0
+Alg3,point-only,uniform_data+skewed_queries,DPart eps=0 (random),16,27,2.8175,0.011479,2.8175,0.011479,,,0.0,0.0
+Alg3,point-only,uniform_data+uniform_queries,DPart,16,27,2.814367,0.010735,2.814367,0.010735,,,0.0,0.0
+Alg3,point-only,uniform_data+uniform_queries,DPart eps=0 (random),16,27,2.816267,0.006781,2.816267,0.006781,,,0.0,0.0
+Alg3,range-only,skewed_data+matched_queries,DPart,13,27,1.826415,0.027773,,,1.826415,0.027773,1.0,0.0
+Alg3,range-only,skewed_data+matched_queries,DPart eps=0 (random),13,27,8.031867,0.023908,,,8.031867,0.023908,1.0,0.0
+Alg3,range-only,skewed_data+mismatched_queries,DPart,13,27,1.039944,0.004497,,,1.039944,0.004497,1.0,0.0
+Alg3,range-only,skewed_data+mismatched_queries,DPart eps=0 (random),13,27,8.0271,0.131726,,,8.0271,0.131726,1.0,0.0
+Alg3,range-only,uniform_data+skewed_queries,DPart,16,27,1.1283,0.001607,,,1.1283,0.001607,1.0,0.0
+Alg3,range-only,uniform_data+skewed_queries,DPart eps=0 (random),16,27,8.617733,0.011706,,,8.617733,0.011706,1.0,0.0
+Alg3,range-only,uniform_data+uniform_queries,DPart,16,27,1.229167,0.013961,,,1.229167,0.013961,1.0,0.0
+Alg3,range-only,uniform_data+uniform_queries,DPart eps=0 (random),16,27,8.631467,0.008447,,,8.631467,0.008447,1.0,0.0
+Alg4,mix (50% range),skewed_data+matched_queries,DPart,13,27,2.286359,0.018638,2.741256,0.013008,1.824144,0.02527,0.496067,0.009948
+Alg4,mix (50% range),skewed_data+matched_queries,DPart eps=0 (random),13,27,5.393733,0.05961,2.778333,0.008437,8.050467,0.018557,0.496067,0.009948
+Alg4,mix (50% range),skewed_data+mismatched_queries,DPart,13/14,27,1.380207,0.085661,1.699811,0.127537,1.055604,0.065444,0.496067,0.009948
+Alg4,mix (50% range),skewed_data+mismatched_queries,DPart eps=0 (random),13/14,27,5.357981,0.030027,2.77093,0.003473,7.988367,0.121923,0.496067,0.009948
+Alg4,mix (50% range),uniform_data+skewed_queries,DPart,16,27,1.6792,0.020131,2.211533,0.013391,1.138367,0.009575,0.496067,0.009948
+Alg4,mix (50% range),uniform_data+skewed_queries,DPart eps=0 (random),16,27,5.691867,0.053293,2.816433,0.006442,8.6134,0.028996,0.496067,0.009948
+Alg4,mix (50% range),uniform_data+uniform_queries,DPart,16,27,2.0194,0.027201,2.811333,0.010099,1.214767,0.018705,0.496067,0.009948
+Alg4,mix (50% range),uniform_data+uniform_queries,DPart eps=0 (random),16,27,5.703933,0.073651,2.8197,0.020044,8.633533,0.036127,0.496067,0.009948
+Alg4,point-only,skewed_data+matched_queries,DPart,13/14,27,2.74267,0.016798,2.74267,0.016798,,,0.0,0.0
+Alg4,point-only,skewed_data+matched_queries,DPart eps=0 (random),13/14,27,2.772393,0.007521,2.772393,0.007521,,,0.0,0.0
+Alg4,point-only,skewed_data+mismatched_queries,DPart,13/14,27,1.690315,0.125517,1.690315,0.125517,,,0.0,0.0
+Alg4,point-only,skewed_data+mismatched_queries,DPart eps=0 (random),13/14,27,2.770048,0.011462,2.770048,0.011462,,,0.0,0.0
+Alg4,point-only,uniform_data+skewed_queries,DPart,16,27,2.201667,0.006481,2.201667,0.006481,,,0.0,0.0
+Alg4,point-only,uniform_data+skewed_queries,DPart eps=0 (random),16,27,2.8175,0.011479,2.8175,0.011479,,,0.0,0.0
+Alg4,point-only,uniform_data+uniform_queries,DPart,16,27,2.814367,0.010735,2.814367,0.010735,,,0.0,0.0
+Alg4,point-only,uniform_data+uniform_queries,DPart eps=0 (random),16,27,2.816267,0.006781,2.816267,0.006781,,,0.0,0.0
+Alg4,range-only,skewed_data+matched_queries,DPart,13,27,1.837778,0.028583,,,1.837778,0.028583,1.0,0.0
+Alg4,range-only,skewed_data+matched_queries,DPart eps=0 (random),13,27,8.031867,0.023908,,,8.031867,0.023908,1.0,0.0
+Alg4,range-only,skewed_data+mismatched_queries,DPart,13/14,27,1.053052,0.062925,,,1.053052,0.062925,1.0,0.0
+Alg4,range-only,skewed_data+mismatched_queries,DPart eps=0 (random),13/14,27,8.041059,0.13248,,,8.041059,0.13248,1.0,0.0
+Alg4,range-only,uniform_data+skewed_queries,DPart,16,27,1.1283,0.001607,,,1.1283,0.001607,1.0,0.0
+Alg4,range-only,uniform_data+skewed_queries,DPart eps=0 (random),16,27,8.617733,0.011706,,,8.617733,0.011706,1.0,0.0
+Alg4,range-only,uniform_data+uniform_queries,DPart,16,27,1.229167,0.013961,,,1.229167,0.013961,1.0,0.0
+Alg4,range-only,uniform_data+uniform_queries,DPart eps=0 (random),16,27,8.631467,0.008447,,,8.631467,0.008447,1.0,0.0

@@ -198,7 +198,11 @@ void TpccGenerator::generateItems()
       i_price = ((float) makeNumber(100L, 10000L)) / 100.0f;
       i_data_size = makeAlphaString(26, 50, i_data.data());
       i_im_id = makeNumber(0, 10000);
-      if (orig[i_id]) {
+      // orig[] is indexed 0..kItemCount-1 but i_id runs 1..kItemCount, so the
+      // original code read orig[kItemCount] (out of bounds) on the last item
+      // and never tested orig[0].  TPC-C wants 10% of items marked "original";
+      // the shift silently changed WHICH items those are.
+      if (orig[i_id - 1]) {
          uint32_t pos = makeNumber(0L, i_data_size - 8);
          i_data[pos] = 'o';
          i_data[pos + 1] = 'r';
@@ -267,7 +271,7 @@ void TpccGenerator::generateStock()
          makeAlphaString(24, 24, s_dist_09.data());
          makeAlphaString(24, 24, s_dist_10.data());
          uint32_t s_data_size = makeAlphaString(26, 50, s_data.data());
-         if (orig[s_i_id]) {
+         if (orig[s_i_id - 1]) {   // same off-by-one as generateItems()
             int64_t pos = makeNumber(0L, s_data_size - 8);
             s_data[pos] = 'o';
             s_data[pos + 1] = 'r';

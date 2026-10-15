@@ -1,5 +1,5 @@
 //
-// Servers_MultiRingORAM.cpp - 完整实现 (v3, 4/19/26)
+// Servers_MultiRingORAM.cpp - 完整实现 (v3, 4/19/26; opcode 11 FIND_SLOTS 10/8/26)
 //
 // 这是 TPC-C 和其他 tests 实际使用的 server listener
 // (编译出 ./Servers_MultiRingORAM 可执行文件)。
@@ -138,6 +138,47 @@ void handle_find_slot(emp::NetIO* netio) {
     netio->send_data(encrypted_data.data(), block_size);
 }
 
+// ========================================
+// handle_find_slots (opcode 11, 10/8/26) — batched FIND_SLOT
+//   client -> [11][name 32][count u32][block_size u32][count x (bucket u32, slot u32)]
+//   server -> [count x block_size]
+// The WHOLE request is read before anything is written.  emp::NetIO uses one
+// FILE* for both directions; if replies were written while later requests
+// still sat unread in the stdio buffer, switching the stream to write mode
+// would discard them.  That is why pipelining opcode 3 does not work.
+// ========================================
+static string lookup_slot(const string& oram_name, uint32_t global_slot_id, uint32_t block_size) {
+    auto oram_it = server_storage.find(oram_name);
+    if (oram_it != server_storage.end()) {
+        auto slot_it = oram_it->second.find(global_slot_id);
+        if (slot_it != oram_it->second.end() && slot_it->second.size() == block_size)
+            return slot_it->second;
+    }
+    static uint64_t miss_count = 0;
+    if (++miss_count == 1 || miss_count % 1000 == 0)
+        cerr << "[FIND_SLOTS] WARNING: returning zeros for ORAM=[" << oram_name
+             << "] slot=" << global_slot_id << " (miss #" << miss_count << ")\n";
+    return string(block_size, '\0');
+}
+
+void handle_find_slots(emp::NetIO* netio) {
+    string oram_name = recvString(netio, NAME_LENGTH);
+    oram_name = oram_name.c_str();
+    uint32_t n_net = 0, bs_net = 0;
+    netio->recv_data(&n_net, sizeof(uint32_t));
+    netio->recv_data(&bs_net, sizeof(uint32_t));
+    const uint32_t n = ntohl(n_net), block_size = ntohl(bs_net);
+
+    vector<uint32_t> ids(2 * static_cast<size_t>(n));            // (bucket, slot) pairs
+    if (n > 0) netio->recv_data(ids.data(), ids.size() * sizeof(uint32_t));
+
+    string reply;
+    reply.reserve(static_cast<size_t>(n) * block_size);
+    for (uint32_t i = 0; i < n; ++i)
+        reply += lookup_slot(oram_name, ntohl(ids[2 * i + 1]), block_size);
+    if (!reply.empty()) netio->send_data(reply.data(), reply.size());
+}
+
 void handle_set_tuple_length(emp::NetIO* netio) {
     string oram_name = recvString(netio, NAME_LENGTH);
     oram_name = oram_name.c_str();
@@ -223,6 +264,7 @@ bool handle_client(emp::NetIO* netio, int port, int connection_num) {
             case 3:  handle_find_slot(netio); break;
             case 9:  handle_set_tuple_length(netio); break;
             case 10: handle_chunk_barrier(netio); break;  // bulk-init flow control (v4)
+            case 11: handle_find_slots(netio); break;     // batched FIND_SLOT (10/8/26)
 
             default:
                 cerr << "[Server port=" << port << " conn#" << connection_num

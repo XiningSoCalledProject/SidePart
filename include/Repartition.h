@@ -90,13 +90,21 @@ struct Partition {
     uint32_t synopsis = 0;             // real data count (total records in this partition)
     uint32_t noisy_synopsis = 0;       // noisy data count (DP protected)
     uint32_t dummy_num = 0;            // dummy records added to fill ORAM to target size
-    // ── New field ──────────────────────────────────────────────────────────
-    // When DP noise is negative (noised < real), we cannot fit all real records
-    // in the DP-sized ORAM.  These overflow records start in the client stash
-    // and are evicted into the ORAM tree by the normal RingORAM eviction path.
-    //   stash_overflow_count = max(0, synopsis - noisy_synopsis)
-    //   records inserted into ORAM tree at init = synopsis - stash_overflow_count
-    //                                           = min(synopsis, noisy_synopsis)
+    // ── Renamed 9/22/26: stash_overflow_count → noise_stash_reserve ────────
+    // When DP noise is negative (noisy < real) the tree is sized to noisy, so
+    // not all real records fit in it:
+    //     noise_stash_reserve = max(0, synopsis − noisy_synopsis)
+    // This is EXTRA CLIENT-SIDE STASH CAPACITY to reserve, not a set of records
+    // pinned in the stash.  The invariant the DP argument needs is
+    //     |tree capacity| = noisy_synopsis      (public, function of ñ only)
+    //     all real records ⊆ tree ∪ stash
+    // Which records happen to be in the stash changes with every eviction; the
+    // server sees neither stash membership nor occupancy.  ALL real records are
+    // inserted at init; whatever does not fit in the tree stays in the stash.
+    uint32_t noise_stash_reserve = 0;
+
+    // DEPRECATED alias, kept in sync so existing benchmark code still compiles.
+    // Remove once all call sites use noise_stash_reserve.
     uint32_t stash_overflow_count = 0;
 };
 

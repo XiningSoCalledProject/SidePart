@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Build
+build/
+cmake-build-*/
+
+# Python / Jupyter
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Private keys
+*.pem
+
+# Temporary files
+*.log
+*.tmp
+
+*.pem

@@ -1,0 +1,4 @@
+arm_label,epsilon,arm,placement,throughput_txn_s,regular_txn_s,proxy_answered,agg_committed_oram,oram_reads_per_served_txn,read_batch_occupancy,read_batch_full_rate,noisy_mean_abs_err,agg_releases,cumulative_agg_eps
+ORAM lookup,0.5,oram,dpart,2162.05,2070.08,0,169,2.0619,1.0000,0.6896,0.000,0,0.00
+Proxy synopsis,0.5000,exact,dpart,3723.15,3101.53,1137,0,1.2023,0.9995,0.5136,0.000,0,0.00
+Zero-info + ORAM,0.0000,oram,random,2257.26,2166.45,0,168,1.9614,0.9999,0.6737,0.000,0,0.00

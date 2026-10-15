@@ -14,6 +14,7 @@
 #include <cmath>
 #include <stdexcept>
 #include "Repartition.h"
+#include "DataPath.h"
 
 static std::vector<std::string> readCSV(const std::string& filename) {
     std::vector<std::string> data;
@@ -74,7 +75,7 @@ int main() {
 
     try {
         std::cout << "📂 Loading test data..." << std::endl;
-        std::vector<std::string> data = readCSV("/Users/xiningyuan/Desktop/seal-oram-netio-master-copy/Testing/Unit Tests/test_data.csv");
+        std::vector<std::string> data = readCSV(departDataPath("Testing/Unit Tests/test_data.csv"));
         std::cout << "✅ Loaded " << data.size() << " records\n" << std::endl;
 
         Repartition repartitioner;

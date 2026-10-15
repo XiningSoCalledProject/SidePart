@@ -17,6 +17,7 @@
 #include <unordered_set>
 #include <vector>
 #include <random>
+#include <cstdlib>
 
 using namespace CryptoPP;
 
@@ -24,12 +25,23 @@ using namespace CryptoPP;
 RingORAM::RingORAM(const uint32_t &n, const uint32_t &buck_size,
                    const std::string &pathoram_name, const uint32_t &block_length,
                    NetIOConnector* ORAMO, const uint32_t &S_input,
-                   const uint32_t permanent_stash_reserve) {
-    // permanent_stash_reserve: number of real records that permanently live in
-    // the stash because the ORAM tree is sized to noisy_synopsis < real_count
-    // (Case B privacy fix: server always sees a noisy-sized tree, not real-sized).
-    // These records are never evicted into the tree; the stash is pre-enlarged to
-    // accommodate them so no overflow abort is ever triggered.
+                   const uint32_t noise_stash_reserve) {
+    // noise_stash_reserve (renamed 9/22/26 from permanent_stash_reserve):
+    //   EXTRA CLIENT-SIDE STASH CAPACITY needed because negative DP noise made
+    //   the tree smaller than the real record count:
+    //       noise_stash_reserve = max(0, n − ñ)
+    //
+    // What the privacy argument actually requires is only:
+    //       |tree capacity| = ñ            (public, a function of ñ alone)
+    //       all real records ⊆ tree ∪ stash
+    // It does NOT require that a FIXED set of (n − ñ) records stays in the
+    // stash forever.  Records move between stash and tree by normal RingORAM
+    // eviction: A may be in the stash now and in the tree after the next
+    // EvictPath, with X, Y taking its place.  The server never sees stash
+    // membership or occupancy, so that churn leaks nothing; what would leak is
+    // growing the TREE to n, which would reveal n > ñ (the sign of the noise).
+    //
+    // So this value is headroom, not a pinned record set.
     // parameters check;
     if (block_length <= sizeof(uint32_t)) {
         throw std::invalid_argument("tuple_length must be > 4");
@@ -52,7 +64,7 @@ RingORAM::RingORAM(const uint32_t &n, const uint32_t &buck_size,
     round = 0;
     bucket_size = buck_size;
     S = S_input;
-    permanent_stash_reserve_ = permanent_stash_reserve;
+    noise_stash_reserve_ = noise_stash_reserve;
     if (S > buck_size) {
         throw std::invalid_argument("S (dummy slots) must be <= bucket size (total slots)");
     }
@@ -75,12 +87,14 @@ RingORAM::RingORAM(const uint32_t &n, const uint32_t &buck_size,
     //       This covers steady-state stash occupancy and transient spikes from
     //       EarlyReshuffle (up to height × bucket_size blocks pushed at once).
     //
-    //   (b) permanent_stash_reserve_: records that permanently live in the stash
-    //       because the ORAM tree is sized to noisy_synopsis < real_count (Case B
-    //       privacy fix).  These never evict into the tree, so the limit must
-    //       account for them on top of the normal steady-state bound.
+    //   (b) noise_stash_reserve_: with a tree sized to ñ < n, up to (n − ñ)
+    //       real records cannot be in the tree at any given moment (which ones
+    //       varies over time).  The limit must cover that on top of the normal
+    //       steady-state bound.
+    //       stash occupancy = normal ORAM stash pressure
+    //                       + noise-induced capacity pressure (≤ this reserve)
     stash_limit = std::max(6u * height * blocks_Z, 2u * n_blocks + 50u)
-                  + permanent_stash_reserve_;
+                  + noise_stash_reserve_;
 
     std::cerr << "[Init] ORAM height = " << height
               << ", num_leaves = " << num_leaves
@@ -88,7 +102,7 @@ RingORAM::RingORAM(const uint32_t &n, const uint32_t &buck_size,
               << ", A (eviction period) = " << A
               << ", stash_limit = " << stash_limit
               << "  (n_blocks=" << n_blocks
-              << ", permanent_stash_reserve=" << permanent_stash_reserve_ << ")" << std::endl;
+              << ", noise_stash_reserve=" << noise_stash_reserve_ << ")" << std::endl;
 
     // initialize the encryption;
     ecrypt_key = new byte[Util::key_length];
@@ -144,7 +158,7 @@ RingORAM::RingORAM(const uint32_t &n, const uint32_t &buck_size,
 
             Util::aes_encrypt(plain, ecrypt_key, cipher);
 
-            uint32_t global_slot_id = i * bucket_size * block_size + slot * block_size;
+            uint32_t global_slot_id = slotKey(i, slot);
 
             conn -> insert_slot(global_slot_id, cipher, name, block_size);
 
@@ -164,42 +178,61 @@ RingORAM::~RingORAM() {
 
 // Post-initialization eviction.
 //
-// After inserting all records during init, the stash may hold more than A
-// entries.  In Case B (noisy < real), permanent_stash_reserve_ records will
-// never evict into the ORAM tree because the tree is sized to noisy_synopsis;
-// these permanently live in the stash and are accessed via the normal stash
-// read path.  We therefore drain to (A + permanent_stash_reserve_), not to A.
+// After inserting all records during init the stash may hold far more than A
+// entries.  We drain towards the NORMAL target A — never towards
+// (A + noise_stash_reserve_).
 //
-// We stop at the target (not 0) because RingORAM is designed to tolerate
-// up to A stash entries between eviction cycles; draining further would
-// waste the reverse-lexicographic path budget unnecessarily.
+// Rationale (9/22/26): the old target pinned (n − ñ) records in the stash by
+// construction.  That is stronger than the privacy argument needs, and it
+// makes a specific set of records permanently client-side.  The invariant is
+// only "tree capacity = ñ, all real records ⊆ tree ∪ stash": push as many
+// records into the tree as physically fit, and whatever does not fit stays in
+// the stash — which records those are is free to change with every eviction.
+//
+// In Case B the tree fills up at ñ blocks and eviction then stops making
+// progress; we detect that (instead of assuming a fixed residual) and stop.
+// The residual is therefore ≈ n − ñ, but it is an OUTCOME, not a rule.
 void RingORAM::flush_stash_if_needed() {
-    uint32_t target = A + permanent_stash_reserve_;
+    const uint32_t target = A;
     if (stash.size() <= target) {
         std::cout << "[flush_stash] Stash size " << stash.size()
-                  << " ≤ target=" << target
-                  << " (A=" << A << " + reserve=" << permanent_stash_reserve_
-                  << "), no extra eviction needed.\n";
+                  << " ≤ target=" << target << " (A), no extra eviction needed.\n";
         return;
     }
-    uint32_t evict_count = 0;
-    uint32_t initial_size = static_cast<uint32_t>(stash.size());
+    const uint32_t initial_size = static_cast<uint32_t>(stash.size());
+    uint32_t evict_count   = 0;
+    uint32_t best          = initial_size;   // smallest stash seen so far
+    uint32_t since_progress = 0;             // evictions since `best` last improved
+    // One EvictPath touches a single reverse-lexicographic path, so a few
+    // fruitless passes are normal; only a full sweep without progress means
+    // the tree is genuinely full.
+    const uint32_t stall_limit = std::max(2u * height, num_leaves);
     while (stash.size() > target) {
         EvictPath();
         ++evict_count;
-        // Safety: if stash isn't shrinking after many passes, the tree is
-        // full and further eviction won't help.  Break to avoid infinite loop.
-        // (For Case B this is expected once the tree fills to noisy capacity.)
-        if (evict_count > 2 * num_leaves) {
-            std::cerr << "[flush_stash] WARNING: stash still has "
-                      << stash.size() << " entries after " << evict_count
-                      << " extra evictions (expected for Case B if tree is full).\n";
+        if (stash.size() < best) { best = static_cast<uint32_t>(stash.size()); since_progress = 0; }
+        else                     { ++since_progress; }
+        if (since_progress >= stall_limit) {
+            std::cout << "[flush_stash] tree is full: " << stash.size()
+                      << " entries remain after " << evict_count
+                      << " evictions (no progress in " << since_progress
+                      << ").  Expected when ñ < n; residual ≈ n − ñ ≤ reserve="
+                      << noise_stash_reserve_ << ".\n";
+            break;
+        }
+        // Absolute safety net only — termination is guaranteed by the stall
+        // check above.  It must scale with the amount of work to do (init can
+        // leave the whole partition in the stash), not just with the tree.
+        if (evict_count > std::max(4u * num_leaves, 4u * initial_size)) {
+            std::cerr << "[flush_stash] WARNING: stopping after " << evict_count
+                      << " evictions with " << stash.size() << " entries left.\n";
             break;
         }
     }
     std::cout << "[flush_stash] " << evict_count << " extra eviction(s): "
               << initial_size << " → " << stash.size()
-              << " stash entries  (target ≤ " << target << ")\n";
+              << " stash entries  (target ≤ " << target
+              << ", noise headroom=" << noise_stash_reserve_ << ")\n";
 }
 
 // Internal helper: insert one (block_id, chunk_id) → data entry into the stash.
@@ -337,6 +370,7 @@ std::string RingORAM::access(uint32_t block_id, OpType op, const std::string& da
     // ─────────────────────────────────────────────────────────────────────
 
     if (op == OpType::READ) {
+        if (defer_decrypt_) return reassembled_data;   // access_batch resolves + decrypts
         std::string plain;
         Util::aes_decrypt(reassembled_data, ecrypt_key, plain);
     /* quieted: std::cout << "The plain block in the stash is " << plain << std::endl; */
@@ -350,6 +384,24 @@ std::string RingORAM::access(uint32_t block_id, OpType op, const std::string& da
         std::string cipher;
         Util::aes_encrypt(data_in, ecrypt_key, cipher);
         reassembled_data = cipher;
+        // ── GUARD (9/22/26) ──────────────────────────────────────────────
+        // The loop below re-maps chunk ids 0..k-1 of the NEW ciphertext but
+        // never removes ids >= k.  If the new value needs fewer chunks than
+        // the stored one, READ would later reassemble stale trailing chunks
+        // and decryption fails.  Callers must write fixed-width values (the
+        // proxy pads to the load-time tuple width in executeOramOps).
+        {
+            const size_t new_chunks = (cipher.size() + block_size - 1) / block_size;
+            auto bcp = block_chunks_pos.find(block_id);
+            if (bcp != block_chunks_pos.end() && bcp->second.size() > new_chunks) {
+                static uint64_t shrink_warned = 0;
+                if (shrink_warned++ == 0)
+                    std::cerr << "[access] WARNING: UPDATE of block_id=" << block_id
+                              << " shrinks it from " << bcp->second.size() << " to "
+                              << new_chunks << " chunks; stale chunks will corrupt later "
+                                 "READs.  Write fixed-width values.  (reported once)\n";
+            }
+        }
         // Step 2: split the data block into the various chunks;
         size_t total = cipher.size();
         size_t offset = 0;
@@ -358,6 +410,32 @@ std::string RingORAM::access(uint32_t block_id, OpType op, const std::string& da
             size_t take = std::min<size_t>(static_cast<size_t>(block_size), total - offset);
             std::string chunk = cipher.substr(offset, take);
             chunk.resize(block_size, '\0');  // keep the same length of the block size;
+            // ── FIX (9/26/26): drop a stale tree copy before writing the new value.
+            // The read loop above already re-mapped this chunk to a new leaf and
+            // put the OLD value in the stash; EarlyReshuffle may then have
+            // evicted that old value into a bucket on the new path.  If it stays
+            // valid there, the next ReadPath finds it and overwrites the new
+            // stash value with the stale one.  Invalidate it (client metadata
+            // only; the slot is simply treated as consumed, as in Ring ORAM).
+            {
+                auto bc = block_chunks_pos.find(block_id);
+                if (bc != block_chunks_pos.end()) {
+                    auto cc = bc->second.find(chunk_id);
+                    if (cc != bc->second.end()) {
+                        const uint32_t leaf = cc->second;
+                        const std::pair<uint32_t, uint32_t> key{block_id, chunk_id};
+                        for (uint32_t level = 0; level < height; ++level) {
+                            const uint32_t bk = (1u << level) - 1u + (leaf >> (height - 1 - level));
+                            auto bb = bucket_blockdata.find(bk);
+                            if (bb == bucket_blockdata.end()) continue;
+                            BucketBlock& Bk = bb->second;
+                            for (size_t j = 0; j < Bk.addrs.size() && j < Bk.ptrs.size(); ++j)
+                                if (Bk.addrs[j] == key && Bk.valids[Bk.ptrs[j]])
+                                    Bk.valids[Bk.ptrs[j]] = false;
+                        }
+                    }
+                }
+            }
             // randomly choose a path for every chunk;
             std::random_device rd;
             std::mt19937 gen(rd());
@@ -422,34 +500,28 @@ std::pair<uint32_t, bool> RingORAM::GetBlockOffset(uint32_t bucket_idx, std::pai
 // Input: the block with block_id that I want and the PathID this block is in;
 // Output: return the encrypted data block;
 std::string RingORAM::ReadPath(uint32_t PathID, std::pair <uint32_t, uint32_t> block_chunk_id) {
+    // Batched (10/8/26): which slot to read in each bucket depends only on
+    // client metadata (GetBlockOffset), never on data returned by the server,
+    // so all `height` slots are chosen first and fetched in ONE round trip
+    // (NetIOConnector::find_slots) instead of one find_slot RTT per bucket.
+    // Same slots, same order, same metadata updates as before.
     std::string return_encrypted_block;
-    // Step 2: if the data is in the RingORAM, find in the RingORAM;
-    std::vector<std::string> encrypted_blocks;
-    // find all buckets along this PathID;
-    std::vector<uint32_t> access_path;
-    std::vector<std::pair<uint32_t, bool>> bucket_slot_is_real;
+    std::vector<std::pair<uint32_t, uint32_t>> reqs;   // {bucket_id, global_slot_id}
+    std::vector<bool> is_real_slot;
+    reqs.reserve(height);
+    is_real_slot.reserve(height);
     for (uint32_t i = 0; i < height; ++i) {
-        uint32_t idx = (1 << i) - 1 + (PathID >> (height - 1 - i));
-        access_path.push_back(idx);
-    /* quieted: std::cout << "The bucket id is " << idx << std::endl; */
-    }
-
-    uint32_t block_id = block_chunk_id.first;
-    uint32_t chunk_id = block_chunk_id.second;
-    // Step 3: Organize all slots along the Path and send them to the RingORAM;
-    for (size_t j = 0; j < access_path.size(); ++j) {
-        uint32_t bucket_id = access_path[j];
-    /* quieted: std::cout << "The bucket id is " << bucket_id << std::endl; */
+        const uint32_t bucket_id = (1u << i) - 1u + (PathID >> (height - 1 - i));
         auto [slot_id, is_real] = GetBlockOffset(bucket_id, block_chunk_id);
-        uint32_t global_slot_id = bucket_id * bucket_size * block_size + slot_id * block_size;
-    /* quieted: std::cout << "The global slot id is " << global_slot_id << std::endl; */
-        BucketBlock& Block = bucket_blockdata[bucket_id];
-        Block.count += 1;
-    /* quieted: std::cout << "The count of the bucket " << bucket_id << " is " << Block.count << std::endl; */
-        std::string encrypted = conn -> find_slot(bucket_id, global_slot_id, name, block_size);
-        if (is_real) {
-            stash_insert(block_id, chunk_id, encrypted);
-            return_encrypted_block = encrypted;
+        bucket_blockdata[bucket_id].count += 1;
+        reqs.push_back({bucket_id, slotKey(bucket_id, slot_id)});
+        is_real_slot.push_back(is_real);
+    }
+    const std::vector<std::string> got = conn->find_slots(reqs, name, block_size);
+    for (size_t j = 0; j < got.size(); ++j) {
+        if (is_real_slot[j]) {
+            stash_insert(block_chunk_id.first, block_chunk_id.second, got[j]);
+            return_encrypted_block = got[j];
         }
     }
     return return_encrypted_block;
@@ -459,33 +531,32 @@ std::string RingORAM::ReadPath(uint32_t PathID, std::pair <uint32_t, uint32_t> b
 // input: the bucket that we want to read;
 // Put Z blocks in the stash;
 void RingORAM::ReadBucket(uint32_t bucket_idx) {
-    /* quieted: std::cout << "[ReadBucket] Reading bucket " << bucket_idx << std::endl; */
-    BucketBlock& Block = bucket_blockdata[bucket_idx];
-    std::vector<uint32_t> return_slots;
+    ReadBuckets(std::vector<uint32_t>{bucket_idx});
+}
 
-    // Step 1: find remaining Z blocks in the bucket;
-    for (uint32_t i = 0; i < bucket_size; ++i) {
-        if (Block.valids[i]) {
-            return_slots.push_back(i);
-    // quieted: std::cout << "The slot in the bucket " << bucket_idx
-                      // << " that needs to read is " << i << std::endl;
+// Batched (10/8/26): read every still-valid slot of all given buckets in ONE
+// round trip (per kFindWindow slots) and move their real blocks to the stash.
+// Reading never changes bucket metadata (WriteBucket resets it), so reading a
+// set of buckets up front is equivalent to reading them one by one.
+void RingORAM::ReadBuckets(const std::vector<uint32_t>& bucket_idxs) {
+    std::vector<std::pair<uint32_t, uint32_t>> reqs;             // {bucket, global_slot}
+    std::vector<std::pair<bool, std::pair<uint32_t, uint32_t>>> real;   // is_real, (bid, cid)
+    for (uint32_t bucket_idx : bucket_idxs) {
+        BucketBlock& Block = bucket_blockdata[bucket_idx];
+        std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> real_slot_id;
+        for (uint32_t k = 0; k < Block.addrs.size() && k < Block.ptrs.size(); ++k)
+            real_slot_id[Block.ptrs[k]] = Block.addrs[k];
+        for (uint32_t i = 0; i < bucket_size; ++i) {
+            if (!Block.valids[i]) continue;
+            reqs.push_back({bucket_idx, slotKey(bucket_idx, i)});
+            auto it = real_slot_id.find(i);
+            real.push_back(it == real_slot_id.end() ? std::make_pair(false, std::make_pair(0u, 0u))
+                                                    : std::make_pair(true, it->second));
         }
     }
-
-    std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> real_slot_id;
-    for (uint32_t k = 0; k < Block.addrs.size(); ++k) {
-        real_slot_id[Block.ptrs[k]] = Block.addrs[k];
-    }
-    // Step 3: Read Z slots from the corresponding bucket;
-    for (uint32_t z = 0; z < return_slots.size(); ++z) {
-        uint32_t slot_id = return_slots[z];
-        uint32_t global_slot_number = bucket_idx * bucket_size * block_size + slot_id * block_size;
-        std::string encrypted = conn -> find_slot(bucket_idx, global_slot_number, name, block_size);
-        if (real_slot_id.find(slot_id) != real_slot_id.end()){
-            auto [bid, cid] = real_slot_id[slot_id];
-            stash_insert(bid, cid, encrypted);
-        }
-    }
+    const std::vector<std::string> got = conn->find_slots(reqs, name, block_size);
+    for (size_t j = 0; j < got.size(); ++j)
+        if (real[j].first) stash_insert(real[j].second.first, real[j].second.second, got[j]);
 }
 
 
@@ -513,11 +584,14 @@ void RingORAM::EarlyReshuffle(uint32_t Path_ID) {
         return;
     }
 
-    // Step 2: EarlyReshuffle all buckets that count reaches S;
-    for (size_t j = 0; j < buckets_need_early_reshuffle.size(); ++j){
-        ReadBucket(buckets_need_early_reshuffle[j]);
+    // Step 2: EarlyReshuffle all buckets that count reaches S.
+    // Batched (10/8/26): read all of them in one round trip, then rewrite
+    // them leaf-first as before.  A block read from one of these buckets may
+    // now be written into another of them if it lies on its path, which keeps
+    // the Ring ORAM invariant (a block lives on its own path or in the stash).
+    ReadBuckets(buckets_need_early_reshuffle);
+    for (size_t j = 0; j < buckets_need_early_reshuffle.size(); ++j)
         WriteBucket(buckets_need_early_reshuffle[j]);
-    }
 }
 
 // input: bucket_idx: which bucket we have to write the data in；local_stash:
@@ -602,7 +676,7 @@ void RingORAM::WriteBucket(uint32_t bucket_idx) {
     // Write the real slots chunks in the server;
     for (uint32_t j = 0; j < Block.addrs.size(); ++j) {
         real_slot_id[Block.ptrs[j]] = std::make_pair(Block.addrs[j].first, Block.addrs[j].second);
-        //uint32_t global_slot_id =  bucket_idx * block_size * bucket_size + Block.ptrs[j] * block_size;
+        //uint32_t global_slot_id = slotKey(bucket_idx, Block.ptrs[j]);
         //conn -> insert_slot(global_slot_id, block_chunk_string[real_slot_id[Block.ptrs[j]]], name, block_size);
     }
 
@@ -633,7 +707,7 @@ void RingORAM::WriteBucket(uint32_t bucket_idx) {
             }
             cipher.resize(block_size, '\0');
             bucket.block[k] = cipher;
-            uint32_t global_slot_id = bucket_idx * bucket_size * block_size + k * block_size;
+            uint32_t global_slot_id = slotKey(bucket_idx, k);
             conn->insert_slot(global_slot_id, cipher, name, block_size);
         }
         else {
@@ -648,7 +722,7 @@ void RingORAM::WriteBucket(uint32_t bucket_idx) {
             const std::string& cipher = p->second;
 
             bucket.block[k] = cipher;
-            uint32_t global_slot_id = bucket_idx * bucket_size * block_size + k * block_size;
+            uint32_t global_slot_id = slotKey(bucket_idx, k);
             conn->insert_slot(global_slot_id, cipher, name, block_size);
         }
     }
@@ -683,11 +757,13 @@ void RingORAM::EvictPath() {
     }
 
     std::reverse(path_buckets.begin(), path_buckets.end());
-    // Step 2: Read the bucket to move data to stash
-    for (uint32_t i = 0; i < path_buckets.size(); ++i) {
-        ReadBucket(path_buckets[i]);
+    // Step 2 (batched 10/8/26, = Ring ORAM's EvictPath): read every bucket on
+    // the path into the stash in ONE round trip, then write the path back from
+    // the leaf to the root.  Previously each bucket was read (one RTT per
+    // valid slot) and written in turn — ~height x valid-slots round trips.
+    ReadBuckets(path_buckets);
+    for (uint32_t i = 0; i < path_buckets.size(); ++i)
         WriteBucket(path_buckets[i]);
-    }
 }
 
 // ============================================================================
@@ -829,6 +905,9 @@ SlotPayload RingORAM::generate_one_dummy_slot(uint32_t slot_index) {
     uint32_t bucket_idx    = slot_index / bucket_size;
     uint32_t slot_in_bucket = slot_index % bucket_size;
 
+    // Direct bulk placement: decide once, before the first slot is streamed.
+    if (!bulk_placed_) bulk_place_stash_into_tree_();
+
     // On the FIRST slot of each bucket, populate bucket_blockdata for this
     // bucket exactly once. This mirrors the constructor's per-bucket setup:
     //   - blocks_Z of bucket_size slots are marked as "real slot positions"
@@ -855,6 +934,40 @@ SlotPayload RingORAM::generate_one_dummy_slot(uint32_t slot_index) {
         }
     }
 
+    // ── Direct bulk placement: attach this bucket's records, emit real slots ─
+    // Block.addrs[j] lives in slot Block.ptrs[j] (same pairing ReadBucket /
+    // GetBlockOffset / WriteBucket use).  The chunk leaves the stash only when
+    // its ciphertext is actually streamed into the tree.
+    if (!bulk_bucket_assign_.empty()) {
+        BucketBlock& Block = bucket_blockdata[bucket_idx];
+        auto as = bulk_bucket_assign_.find(bucket_idx);
+        if (as != bulk_bucket_assign_.end()) {
+            if (Block.addrs.empty() && Block.ptrs.size() >= as->second.size())
+                Block.addrs = std::move(as->second);
+            bulk_bucket_assign_.erase(as);
+        }
+    }
+    {
+        BucketBlock& Block = bucket_blockdata[bucket_idx];
+        for (size_t j = 0; j < Block.addrs.size() && j < Block.ptrs.size(); ++j) {
+            if (Block.ptrs[j] != slot_in_bucket) continue;
+            auto st = stash.find(Block.addrs[j]);
+            if (st == stash.end()) {
+                // Already streamed once (slot generated twice) or never loaded:
+                // either way the metadata would point at a dummy.  Loud failure.
+                std::cerr << "[bulk_direct] BUG: bucket " << bucket_idx << " slot "
+                          << slot_in_bucket << " expects (" << Block.addrs[j].first << ","
+                          << Block.addrs[j].second << ") but it is not in the stash\n";
+                std::abort();
+            }
+            SlotPayload sp;
+            sp.global_slot_id = slotKey(bucket_idx, slot_in_bucket);
+            sp.cipher = std::move(st->second);
+            stash.erase(st);
+            return sp;
+        }
+    }
+
     // Build this slot's encrypted dummy content
     std::string dummy_payload = Util::generate_random_block(
         block_size - Util::aes_block_size - sizeof(uint32_t));
@@ -863,8 +976,113 @@ SlotPayload RingORAM::generate_one_dummy_slot(uint32_t slot_index) {
     std::string plain = bid_str + dummy_payload;
 
     SlotPayload sp;
-    sp.global_slot_id = bucket_idx * bucket_size * block_size
-                      + slot_in_bucket * block_size;
+    sp.global_slot_id = slotKey(bucket_idx, slot_in_bucket);
     Util::aes_encrypt(plain, ecrypt_key, sp.cipher);
     return sp;
+}
+
+// ============================================================================
+//  Direct bulk placement (9/26/26)
+// ============================================================================
+//  Standard ORAM bulk construction: every chunk already has a uniformly random
+//  leaf (bulk_load_stash).  Place it in the deepest bucket on that leaf's path
+//  with a free real slot.  This satisfies the Ring ORAM invariant (a block
+//  lives on the path to its leaf, or in the stash) and costs O(N log N) CPU
+//  with no extra network traffic: the ciphertexts ride along in the one tree
+//  upload that already happens.  The server receives the same number of
+//  equal-length AES ciphertexts as before, so it learns nothing new.
+//
+//  Chunks that do not fit (tree full) stay in the stash, exactly as after the
+//  old flush.
+// ============================================================================
+void RingORAM::bulk_place_stash_into_tree_() {
+    bulk_placed_ = true;
+    if (stash.empty()) return;
+    if (const char* e = std::getenv("DEPART_BULK_DIRECT"); e && std::string(e) == "0") {
+        std::cout << "[bulk_direct] disabled (DEPART_BULK_DIRECT=0); "
+                  << stash.size() << " chunks stay in the stash\n";
+        return;
+    }
+    const uint32_t total_buckets = (1u << height) - 1u;
+    std::vector<uint16_t> used(total_buckets, 0);
+    size_t placed = 0, left = 0;
+    std::vector<size_t> per_level(height, 0);
+    for (const auto& kv : stash) {
+        const auto& key = kv.first;
+        auto b = block_chunks_pos.find(key.first);
+        if (b == block_chunks_pos.end()) { ++left; continue; }
+        auto c = b->second.find(key.second);
+        if (c == b->second.end())        { ++left; continue; }
+        const uint32_t leaf = c->second;
+        bool ok = false;
+        for (int32_t level = static_cast<int32_t>(height) - 1; level >= 0; --level) {
+            const uint32_t bucket = (1u << level) - 1u + (leaf >> (height - 1 - level));
+            if (used[bucket] < blocks_Z) {
+                ++used[bucket];
+                bulk_bucket_assign_[bucket].push_back(key);
+                ++per_level[static_cast<size_t>(level)];
+                ok = true;
+                break;
+            }
+        }
+        if (ok) ++placed; else ++left;
+    }
+    std::cout << "[bulk_direct] " << name << ": placed " << placed << " chunks directly in the tree ("
+              << per_level[height - 1] << " at leaf level), " << left
+              << " stay in the stash\n";
+}
+
+// ============================================================================
+//  access_batch (10/8/26) — one network round trip per batch
+// ============================================================================
+//  Every decision Ring ORAM makes (which slot of each bucket to read, which
+//  buckets to reshuffle or evict, which stash blocks go into which bucket) is
+//  a function of CLIENT metadata only; the server's bytes are needed only as
+//  ciphertext to move around and, for READ, to decrypt at the end.  So the
+//  batch is executed once on the metadata with the connector deferred: a
+//  slot read yields a placeholder (or, if the slot was rewritten earlier in
+//  this batch, its new content), writes are recorded.  end_deferred() then
+//  fetches all read slots in one FIND_SLOTS round trip, patches placeholders
+//  into the recorded writes and streams them.  Finally placeholders left in
+//  the stash and in READ results are replaced and the results decrypted.
+// ============================================================================
+std::vector<std::string> RingORAM::access_batch(const std::vector<BatchOp>& ops) {
+    std::vector<std::string> out(ops.size());
+    if (ops.empty()) return out;
+
+    conn->begin_deferred(name, block_size);
+    defer_decrypt_ = true;
+    try {
+        for (size_t i = 0; i < ops.size(); ++i)
+            out[i] = access(ops[i].block_id, ops[i].op, ops[i].data);
+    } catch (...) {
+        defer_decrypt_ = false;
+        conn->end_deferred();
+        throw;
+    }
+    defer_decrypt_ = false;
+    const std::unordered_map<uint64_t, std::string> resolved = conn->end_deferred();
+
+    // Replace every placeholder chunk in a (multi-)chunk ciphertext.
+    auto resolve = [&](std::string& c) {
+        for (size_t off = 0; off + block_size <= c.size(); off += block_size) {
+            uint64_t id;
+            if (!NetIOConnector::is_placeholder(c.substr(off, block_size), &id)) continue;
+            auto it = resolved.find(id);
+            if (it == resolved.end()) {
+                std::cerr << "[access_batch] BUG: unresolved placeholder " << id << "\n";
+                std::abort();
+            }
+            c.replace(off, block_size, it->second);
+        }
+    };
+    for (auto& [key, chunk] : stash) resolve(chunk);
+    for (size_t i = 0; i < ops.size(); ++i) {
+        if (ops[i].op != OpType::READ || out[i].empty()) continue;
+        resolve(out[i]);
+        std::string plain;
+        Util::aes_decrypt(out[i], ecrypt_key, plain);
+        out[i] = std::move(plain);
+    }
+    return out;
 }

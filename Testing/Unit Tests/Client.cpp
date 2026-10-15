@@ -1,404 +1,257 @@
 //
-// Auto-Starting Parallel Client
-// Automatically spawns multiple server processes and connects to them
-// Usage: ./AutoClient [num_servers] [starting_port] [message]
+// Client.cpp — connectivity smoke test for the storage listener  (v2, 9/22/26)
 //
-
-#include <iostream>
-#include <vector>
-#include <thread>
-#include <mutex>
-#include <chrono>
-#include <cstring>
-#include <unistd.h>
+// Spawns N Server processes and opens one connection to each, in parallel, to
+// verify that the listeners come up and speak the wire protocol.  It is NOT an
+// ORAM test: the real ORAM traffic goes through NetIOConnector, driven by the
+// children that MultiRingORAM_Servers forks.
+//
+// v2 fixes three things that made v1 report failures on a healthy system:
+//
+//   1. WRONG BINARY PATH.  v1 looked in ./Server, ./build/Server, ../Server.
+//      CMake puts executables in build/bin, so it never found the server and
+//      exited before testing anything.  The search list now covers build/bin
+//      and, for Servers_MultiRingORAM, the listener the tests actually use.
+//
+//   2. PROTOCOL MISMATCH.  v1 sent the plain text "Hello from AutoClient" and
+//      then waited for a reply.  The server reads the FIRST BYTE as an opcode:
+//      'H' (72) is not a valid opcode, so the server logged "Unknown opcode 72"
+//      and closed without replying, and the client sat in recv() until its 5 s
+//      timeout and reported "Failed to receive response" for every server.
+//      v2 sends opcode 9 (SET_TUPLE_LENGTH) — a harmless, idempotent request
+//      that touches no slot data — and then opcode -1 (CLOSE), which is exactly
+//      what a well-behaved client does.
+//
+//   3. THE READINESS PROBE STOLE THE CONNECTION.  v1 called waitForServer(),
+//      which connected and immediately closed.  The listener's accept() is
+//      satisfied by that probe, so the probe became "connection #1" and the
+//      real connection had to wait for the server to loop around and accept
+//      again.  v2 drops the probe and simply retries the real connect.
+//
+// Usage: ./Client [num_servers] [starting_port] [server_exec]
+//
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sstream>
+#include <unistd.h>
+
+#include <chrono>
+#include <cstring>
 #include <iomanip>
-#include <signal.h>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
-#define BUFFER_SIZE 4096
-#define DEFAULT_NUM_SERVERS 3
-#define DEFAULT_STARTING_PORT 8881
-#define DEFAULT_MESSAGE "Hello from AutoClient"
+static constexpr int DEFAULT_NUM_SERVERS   = 3;
+static constexpr int DEFAULT_STARTING_PORT = 8881;
+static constexpr int NAME_LENGTH           = 32;   // must match the server
 
-// Structure to hold server information
-struct ServerInfo {
+struct Target {
     std::string ip;
-    int port;
-    int id;
-    pid_t pid;  // Process ID of the server
+    int   port = 0;
+    int   id   = 0;
+    pid_t pid  = -1;
 };
 
-// Structure to hold connection result
-struct ConnectionResult {
-    int server_id;
-    std::string server_address;
-    bool success;
-    std::string response;
-    double elapsed_time_ms;
-    std::string error_message;
+struct Result {
+    int         id = 0;
+    std::string address;
+    bool        success = false;
+    double      elapsed_ms = 0;
+    std::string error;
 };
 
-// Global variables for cleanup
-std::vector<pid_t> server_pids;
-std::mutex cout_mutex;
+static std::vector<pid_t> g_server_pids;
+static std::mutex         g_cout_mu;
 
-// Signal handler for cleanup
-void cleanup_servers(int signum) {
-    std::cout << "\n\n🛑 Shutting down servers..." << std::endl;
-    for (pid_t pid : server_pids) {
-        kill(pid, SIGTERM);
-    }
-    exit(signum);
+static void safe_print(const std::string& s) {
+    std::lock_guard<std::mutex> lk(g_cout_mu);
+    std::cout << s << std::flush;
 }
 
-// Thread-safe console output
-void safe_print(const std::string& message) {
-    std::lock_guard<std::mutex> lock(cout_mutex);
-    std::cout << message << std::flush;
+static void cleanup_servers(int signum) {
+    std::cout << "\nShutting down servers...\n";
+    for (pid_t pid : g_server_pids) kill(pid, SIGTERM);
+    _exit(signum);
 }
 
-// Start a server process
-pid_t startServer(int port, const std::string& server_exec) {
+// ── Find the listener binary ────────────────────────────────────────────────
+// CMake writes executables to build/bin.  Servers_MultiRingORAM is the listener
+// the tests use; Server is the older single-file one.  Both speak this protocol.
+static std::string findServerExec(const std::string& override_path) {
+    std::vector<std::string> candidates;
+    if (!override_path.empty()) candidates.push_back(override_path);
+    for (const char* dir : {"./build/bin/", "./bin/", "./", "../build/bin/", "../"})
+        for (const char* name : {"Servers_MultiRingORAM", "Server"})
+            candidates.push_back(std::string(dir) + name);
+    for (const auto& c : candidates)
+        if (access(c.c_str(), X_OK) == 0) return c;
+    return {};
+}
+
+static pid_t startServer(int port, const std::string& exec) {
     pid_t pid = fork();
-
-    if (pid < 0) {
-        std::cerr << "❌ Failed to fork server process for port " << port << std::endl;
-        return -1;
-    }
-
+    if (pid < 0) return -1;
     if (pid == 0) {
-        // Child process: run the server
-        // Redirect output to /dev/null or log file
-        std::string log_file = "server_" + std::to_string(port) + ".log";
-        freopen(log_file.c_str(), "w", stdout);
-        freopen(log_file.c_str(), "w", stderr);
-
-        // Execute server
-        std::string port_str = std::to_string(port);
-        execl(server_exec.c_str(), server_exec.c_str(), port_str.c_str(), nullptr);
-
-        // If execl fails
-        std::cerr << "❌ Failed to execute server: " << server_exec << std::endl;
-        exit(1);
+        const std::string log = "server_" + std::to_string(port) + ".log";
+        if (!freopen(log.c_str(), "w", stdout)) _exit(1);
+        if (!freopen(log.c_str(), "w", stderr)) _exit(1);
+        const std::string port_str = std::to_string(port);
+        execl(exec.c_str(), exec.c_str(), port_str.c_str(), (char*)nullptr);
+        _exit(1);                       // execl only returns on failure
     }
-
-    // Parent process: return child PID
     return pid;
 }
 
-// Check if server is ready
-bool waitForServer(const std::string& ip, int port, int max_attempts = 20) {
-    for (int attempt = 0; attempt < max_attempts; ++attempt) {
-        int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sock_fd < 0) {
-            continue;
+static bool sendAll(int fd, const void* buf, size_t n) {
+    const char* p = static_cast<const char*>(buf);
+    while (n) {
+        const ssize_t w = send(fd, p, n, 0);
+        if (w <= 0) return false;
+        p += w; n -= static_cast<size_t>(w);
+    }
+    return true;
+}
+
+// One connection: connect (with retry), speak the protocol, close cleanly.
+static Result probeServer(const Target& t) {
+    Result r;
+    r.id = t.id;
+    r.address = t.ip + ":" + std::to_string(t.port);
+    const auto t0 = std::chrono::high_resolution_clock::now();
+
+    int fd = -1;
+    for (int attempt = 0; attempt < 100; ++attempt) {      // ~10 s total
+        fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (fd < 0) { r.error = "socket() failed"; return r; }
+        timeval tv{5, 0};
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+
+        sockaddr_in addr{};
+        addr.sin_family = AF_INET;
+        addr.sin_port   = htons(static_cast<uint16_t>(t.port));
+        if (inet_pton(AF_INET, t.ip.c_str(), &addr.sin_addr) <= 0) {
+            r.error = "bad address"; close(fd); return r;
         }
-
-        struct sockaddr_in server_addr;
-        std::memset(&server_addr, 0, sizeof(server_addr));
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(port);
-        inet_pton(AF_INET, ip.c_str(), &server_addr.sin_addr);
-
-        // Try to connect
-        if (connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == 0) {
-            close(sock_fd);
-            return true;
-        }
-
-        close(sock_fd);
+        if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0) break;
+        close(fd);
+        fd = -1;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    if (fd < 0) {
+        r.error = "connect failed (listener not up?)";
+        r.elapsed_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::high_resolution_clock::now() - t0).count();
+        return r;
+    }
+    safe_print("  [Server " + std::to_string(t.id) + "] connected to " + r.address + "\n");
 
-    return false;
-}
+    // SET_TUPLE_LENGTH (opcode 9): name[32] + uint32 length, network order.
+    // Touches no slot data, so it is safe to send to a live listener.
+    const int8_t OP_SET_TUPLE_LENGTH = 9, OP_CLOSE = -1;
+    char name[NAME_LENGTH];
+    std::memset(name, 0, sizeof(name));
+    std::snprintf(name, sizeof(name), "ping_%d", t.id);
+    const uint32_t len_net = htonl(64);
 
-// Connect to a single server and send/receive data
-ConnectionResult connectToServer(const ServerInfo& server, const std::string& message) {
-    ConnectionResult result;
-    result.server_id = server.id;
-    result.server_address = server.ip + ":" + std::to_string(server.port);
-    result.success = false;
-
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    // 1. Create socket
-    int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd < 0) {
-        result.error_message = "Failed to create socket";
-        return result;
+    if (!sendAll(fd, &OP_SET_TUPLE_LENGTH, 1) ||
+        !sendAll(fd, name, NAME_LENGTH) ||
+        !sendAll(fd, &len_net, sizeof(len_net))) {
+        r.error = "send failed (server closed early?)";
+        close(fd);
+        return r;
     }
 
-    // Set socket timeout
-    struct timeval timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
-    setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(sock_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    // 2. Set up server address
-    struct sockaddr_in server_addr;
-    std::memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server.port);
-
-    if (inet_pton(AF_INET, server.ip.c_str(), &server_addr.sin_addr) <= 0) {
-        result.error_message = "Invalid server address";
-        close(sock_fd);
-        return result;
+    // CLOSE (opcode -1): the server logs the session and returns; no reply is
+    // sent for either opcode, so we must NOT wait for one.
+    if (!sendAll(fd, &OP_CLOSE, 1)) {
+        r.error = "send CLOSE failed";
+        close(fd);
+        return r;
     }
+    safe_print("  [Server " + std::to_string(t.id) + "] protocol OK, closed\n");
 
-    // 3. Connect to server
-    safe_print("  [Server " + std::to_string(server.id) + "] Connecting to "
-               + result.server_address + "...\n");
-
-    if (connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        result.error_message = "Connection failed";
-        close(sock_fd);
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-        result.elapsed_time_ms = std::chrono::duration<double, std::milli>(end_time - start_time).count();
-        return result;
-    }
-
-    safe_print("  [Server " + std::to_string(server.id) + "] ✅ Connected!\n");
-
-    // 4. Send message
-    ssize_t bytes_sent = send(sock_fd, message.c_str(), message.length(), 0);
-    if (bytes_sent < 0) {
-        result.error_message = "Failed to send message";
-        close(sock_fd);
-        return result;
-    }
-
-    safe_print("  [Server " + std::to_string(server.id) + "] 📤 Sent "
-               + std::to_string(bytes_sent) + " bytes\n");
-
-    // 5. Receive response
-    char buffer[BUFFER_SIZE];
-    std::memset(buffer, 0, BUFFER_SIZE);
-
-    ssize_t bytes_received = recv(sock_fd, buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received > 0) {
-        result.response = std::string(buffer, bytes_received);
-        result.success = true;
-
-        safe_print("  [Server " + std::to_string(server.id) + "] 📥 Response: \""
-                   + result.response + "\"\n");
-    } else if (bytes_received == 0) {
-        result.error_message = "Server closed connection";
-    } else {
-        result.error_message = "Failed to receive response";
-    }
-
-    // 6. Close connection
-    close(sock_fd);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    result.elapsed_time_ms = std::chrono::duration<double, std::milli>(end_time - start_time).count();
-
-    return result;
-}
-
-// Worker thread function
-void workerThread(const ServerInfo& server, const std::string& message,
-                  std::vector<ConnectionResult>& results, size_t index) {
-    results[index] = connectToServer(server, message);
+    close(fd);
+    r.success = true;
+    r.elapsed_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::high_resolution_clock::now() - t0).count();
+    return r;
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "\n╔═══════════════════════════════════════════════════════╗\n";
-    std::cout << "║      Auto-Starting Parallel Client System            ║\n";
-    std::cout << "╚═══════════════════════════════════════════════════════╝\n\n";
-
-    // Parse command line arguments
-    int num_servers = DEFAULT_NUM_SERVERS;
-    int starting_port = DEFAULT_STARTING_PORT;
-    std::string message = DEFAULT_MESSAGE;
-
-    if (argc > 1) num_servers = std::atoi(argv[1]);
-    if (argc > 2) starting_port = std::atoi(argv[2]);
-    if (argc > 3) message = argv[3];
+    const int num_servers   = argc > 1 ? std::atoi(argv[1]) : DEFAULT_NUM_SERVERS;
+    const int starting_port = argc > 2 ? std::atoi(argv[2]) : DEFAULT_STARTING_PORT;
+    const std::string exec_override = argc > 3 ? argv[3] : "";
 
     if (num_servers < 1 || num_servers > 100) {
-        std::cerr << "❌ Invalid number of servers (must be 1-100)\n";
+        std::cerr << "Invalid number of servers (1-100)\n";
         return 1;
     }
 
-    std::cout << "⚙️  Configuration:\n";
-    std::cout << "   Number of Servers: " << num_servers << "\n";
-    std::cout << "   Starting Port:     " << starting_port << "\n";
-    std::cout << "   Message:           \"" << message << "\"\n\n";
-
-    // Set up signal handler for cleanup
-    signal(SIGINT, cleanup_servers);
+    signal(SIGINT,  cleanup_servers);
     signal(SIGTERM, cleanup_servers);
 
-    // Determine server executable path
-    std::string server_exec = "./Server";
-    if (access(server_exec.c_str(), X_OK) != 0) {
-        // Try alternative paths
-        if (access("./build/Server", X_OK) == 0) {
-            server_exec = "./build/Server";
-        } else if (access("../Server", X_OK) == 0) {
-            server_exec = "../Server";
-        } else {
-            std::cerr << "❌ Server executable not found!\n";
-            std::cerr << "   Looked in: ./Server, ./build/Server, ../Server\n";
-            std::cerr << "   Please compile Server first: make Server\n";
-            return 1;
-        }
-    }
-
-    std::cout << "📦 Using server executable: " << server_exec << "\n\n";
-
-    // Step 1: Start all server processes
-    std::cout << "🚀 Step 1: Starting " << num_servers << " server processes...\n";
-
-    std::vector<ServerInfo> servers;
-    for (int i = 0; i < num_servers; ++i) {
-        ServerInfo server;
-        server.ip = "127.0.0.1";
-        server.port = starting_port + i;
-        server.id = i + 1;
-
-        std::cout << "  Starting Server " << server.id << " on port " << server.port << "... ";
-
-        pid_t pid = startServer(server.port, server_exec);
-        if (pid < 0) {
-            std::cout << "❌ Failed\n";
-            // Cleanup already started servers
-            for (pid_t p : server_pids) {
-                kill(p, SIGTERM);
-            }
-            return 1;
-        }
-
-        server.pid = pid;
-        server_pids.push_back(pid);
-        servers.push_back(server);
-
-        std::cout << "✅ (PID: " << pid << ")\n";
-    }
-
-    std::cout << "\n⏳ Step 2: Waiting for servers to be ready...\n";
-
-    // Step 2: Wait for all servers to be ready
-    bool all_ready = true;
-    for (auto& server : servers) {
-        std::cout << "  Checking Server " << server.id << " (port " << server.port << ")... ";
-
-        if (waitForServer(server.ip, server.port)) {
-            std::cout << "✅ Ready\n";
-        } else {
-            std::cout << "❌ Not responding\n";
-            all_ready = false;
-        }
-    }
-
-    if (!all_ready) {
-        std::cerr << "\n❌ Some servers failed to start properly\n";
-        cleanup_servers(1);
+    const std::string server_exec = findServerExec(exec_override);
+    if (server_exec.empty()) {
+        std::cerr << "Server executable not found.  Looked for Servers_MultiRingORAM "
+                     "and Server under ./build/bin, ./bin, ., ../build/bin, ..\n"
+                     "Build it first:  cmake --build build --target Servers_MultiRingORAM\n";
         return 1;
     }
 
-    std::cout << "\n✅ All servers are ready!\n\n";
+    std::cout << "Listener : " << server_exec << "\n"
+              << "Servers  : " << num_servers << " on ports " << starting_port << ".."
+              << starting_port + num_servers - 1 << "\n\n";
 
-    // Step 3: Connect to all servers in parallel
-    std::cout << "🚀 Step 3: Connecting to all servers in parallel...\n\n";
-
-    std::vector<ConnectionResult> results(servers.size());
-    std::vector<std::thread> threads;
-
-    auto overall_start = std::chrono::high_resolution_clock::now();
-
-    // Launch worker threads
-    for (size_t i = 0; i < servers.size(); ++i) {
-        threads.emplace_back(workerThread, std::ref(servers[i]), std::ref(message),
-                            std::ref(results), i);
-    }
-
-    // Wait for all threads to complete
-    for (auto& thread : threads) {
-        thread.join();
-    }
-
-    auto overall_end = std::chrono::high_resolution_clock::now();
-    double overall_time = std::chrono::duration<double, std::milli>(overall_end - overall_start).count();
-
-    // Step 4: Display results
-    std::cout << "\n" << std::string(60, '=') << "\n";
-    std::cout << "📈 Results Summary\n";
-    std::cout << std::string(60, '=') << "\n\n";
-
-    int successful = 0;
-    int failed = 0;
-    double total_time = 0.0;
-    double max_time = 0.0;
-    double min_time = 1e9;
-
-    for (const auto& result : results) {
-        std::cout << "Server " << result.server_id << " (" << result.server_address << "):\n";
-
-        if (result.success) {
-            std::cout << "  ✅ Status: SUCCESS\n";
-            std::cout << "  📥 Response: \"" << result.response << "\"\n";
-            std::cout << "  ⏱️  Time: " << std::fixed << std::setprecision(2)
-                      << result.elapsed_time_ms << " ms\n";
-            successful++;
-            total_time += result.elapsed_time_ms;
-            max_time = std::max(max_time, result.elapsed_time_ms);
-            min_time = std::min(min_time, result.elapsed_time_ms);
-        } else {
-            std::cout << "  ❌ Status: FAILED\n";
-            std::cout << "  💬 Error: " << result.error_message << "\n";
-            std::cout << "  ⏱️  Time: " << std::fixed << std::setprecision(2)
-                      << result.elapsed_time_ms << " ms\n";
-            failed++;
+    std::vector<Target> targets;
+    for (int i = 0; i < num_servers; ++i) {
+        Target t;
+        t.ip = "127.0.0.1";
+        t.port = starting_port + i;
+        t.id = i + 1;
+        t.pid = startServer(t.port, server_exec);
+        if (t.pid < 0) {
+            std::cerr << "fork failed for port " << t.port << "\n";
+            cleanup_servers(1);
         }
-        std::cout << "\n";
+        g_server_pids.push_back(t.pid);
+        targets.push_back(t);
+        std::cout << "  started listener on port " << t.port << " (pid " << t.pid << ")\n";
     }
 
-    // Print statistics
-    std::cout << std::string(60, '=') << "\n";
-    std::cout << "📊 Statistics\n";
-    std::cout << std::string(60, '=') << "\n";
-    std::cout << "  Total Servers:      " << servers.size() << "\n";
-    std::cout << "  Successful:         " << successful << "\n";
-    std::cout << "  Failed:             " << failed << "\n";
-    std::cout << "  Success Rate:       " << std::fixed << std::setprecision(1)
-              << (servers.size() > 0 ? 100.0 * successful / servers.size() : 0.0) << "%\n";
-    std::cout << "\n";
+    std::cout << "\nConnecting in parallel (connect retries for up to 10 s each)...\n";
+    std::vector<Result> results(targets.size());
+    std::vector<std::thread> threads;
+    const auto t0 = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < targets.size(); ++i)
+        threads.emplace_back([&, i]() { results[i] = probeServer(targets[i]); });
+    for (auto& th : threads) th.join();
+    const double overall_ms = std::chrono::duration<double, std::milli>(
+            std::chrono::high_resolution_clock::now() - t0).count();
 
-    if (successful > 0) {
-        std::cout << "  Timing (successful connections):\n";
-        std::cout << "    Min Time:         " << std::fixed << std::setprecision(2)
-                  << min_time << " ms\n";
-        std::cout << "    Max Time:         " << max_time << " ms\n";
-        std::cout << "    Avg Time:         " << (total_time / successful) << " ms\n";
+    int ok = 0;
+    std::cout << "\n" << std::string(58, '=') << "\n";
+    for (const auto& r : results) {
+        std::cout << "Server " << r.id << " (" << r.address << "): "
+                  << (r.success ? "OK" : "FAILED");
+        if (!r.success) std::cout << " — " << r.error;
+        std::cout << "  (" << std::fixed << std::setprecision(1) << r.elapsed_ms << " ms)\n";
+        ok += r.success ? 1 : 0;
     }
+    std::cout << std::string(58, '=') << "\n"
+              << ok << "/" << results.size() << " listeners healthy, "
+              << std::fixed << std::setprecision(1) << overall_ms << " ms total\n"
+              << "Per-server logs: server_<port>.log\n";
 
-    std::cout << "\n  Overall Execution:  " << std::fixed << std::setprecision(2)
-              << overall_time << " ms\n";
-    std::cout << std::string(60, '=') << "\n\n";
-
-    // Step 5: Cleanup
-    std::cout << "🧹 Step 4: Shutting down servers...\n";
-    for (size_t i = 0; i < servers.size(); ++i) {
-        std::cout << "  Stopping Server " << servers[i].id << " (PID: " << servers[i].pid << ")... ";
-        kill(servers[i].pid, SIGTERM);
-
-        // Wait for process to terminate
-        int status;
-        waitpid(servers[i].pid, &status, 0);
-        std::cout << "✅\n";
+    for (const auto& t : targets) {
+        kill(t.pid, SIGTERM);
+        int status = 0;
+        waitpid(t.pid, &status, 0);
     }
-
-    std::cout << "\n✅ All operations completed!\n\n";
-
-    return (failed > 0) ? 1 : 0;
+    return ok == static_cast<int>(results.size()) ? 0 : 1;
 }

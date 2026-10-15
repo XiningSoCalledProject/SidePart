@@ -181,14 +181,19 @@ void handle_chunk_barrier(emp::NetIO* netio) {
 // Reads the typical insert/update payload (id + data).
 // ========================================
 
-void handle_update(emp::NetIO* netio) {
+// Returns false: the session MUST end.  This stub consumed only the name, so
+// the rest of the payload is still in the stream — continuing would read that
+// payload as opcodes and corrupt everything after it.  Nothing in this repo
+// sends opcode 4 any more (all traffic is insert_slot / find_slot), so the
+// honest response is to report it and drop the connection rather than to
+// desynchronize silently.
+bool handle_update(emp::NetIO* netio) {
     string oram_name = recvString(netio, NAME_LENGTH);
     oram_name = oram_name.c_str();
-    // This is a simplified placeholder — TPC-C currently does not use
-    // opcode 4 directly (all goes through insert_slot/find_slot). We just
-    // print a warning if it ever triggers.
-    cerr << "[WARN] Received legacy opcode 4 for ORAM=[" << oram_name
-         << "]. This handler is a stub.\n";
+    cerr << "[ERROR] Legacy opcode 4 (UPDATE) for ORAM=[" << oram_name
+         << "] is not implemented; closing the session so the byte stream "
+            "cannot desynchronize.\n";
+    return false;
 }
 
 // ========================================
@@ -225,7 +230,8 @@ bool handle_client(emp::NetIO* netio) {
             case 3:
                 handle_find_slot(netio); break;
             case 4:
-                handle_update(netio); break;
+                if (!handle_update(netio)) return false;
+                break;
             case 9:
                 handle_set_tuple_length(netio); break;
             case 10:

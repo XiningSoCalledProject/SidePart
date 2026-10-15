@@ -89,6 +89,7 @@ BinInfo Repartition::computeSynopsis(
     BinInfo bin_info(selected_types, selected_names);
 
     // 5. traverse the data — parse CSV lines directly by column index;
+    uint64_t pk_collisions = 0;
     for (size_t data_idx = 0; data_idx < data.size(); ++data_idx) {
         const auto& line = data[data_idx];
         std::vector<std::string> fields = splitCSVLine(line, ',');
@@ -112,12 +113,25 @@ BinInfo Repartition::computeSynopsis(
         bin_info.data_index_to_bin_key.push_back(combined_value);
         bin_info.bin_key_to_data_indices[combined_value].push_back(static_cast<uint32_t>(data_idx));
 
-        // Extract primary key and build reverse mapping
+        // Extract primary key and build reverse mapping.
+        // ── FIX (9/22/26): single-column PK is NOT unique for composite-key
+        // tables (ORDER_LINE (W,D,O,OL), STOCK (W,I), CUSTOMER (W,D,C), ...).
+        // The old code silently overwrote earlier rows.  We now keep the FIRST
+        // row and count collisions.  Nothing downstream reads this map; the
+        // authoritative row identity is ObjectKey (ObjectKey.h / pos_map).
         if (primary_key_col >= 0 && primary_key_col < static_cast<int>(fields.size())) {
-            bin_info.primary_key_to_data_index[fields[primary_key_col]] = static_cast<uint32_t>(data_idx);
+            auto ins = bin_info.primary_key_to_data_index.emplace(
+                fields[primary_key_col], static_cast<uint32_t>(data_idx));
+            if (!ins.second) ++pk_collisions;
         }
     }
 
+    if (pk_collisions > 0) {
+        std::cerr << "[computeSynopsis] WARNING: " << pk_collisions
+                  << " rows share a primary_key_col value with an earlier row "
+                     "(composite-key table?).  primary_key_to_data_index keeps the "
+                     "first row only; use ObjectKey for row identity.\n";
+    }
     return bin_info;
 }
 // ============================================
@@ -180,7 +194,33 @@ std::vector<Partition> Repartition::Repartition_Main(
     }
     uint64_t total_noised_synopsis = (total_noised_signed > 0)
         ? static_cast<uint64_t>(total_noised_signed) : 0;
-    std::cout << "Total noised synopsis (clamped): " << total_noised_synopsis
+
+    // ── Σ_i max(0, DP_Bins[i]) — the quantity Algorithm 2's initial threshold
+    //    uses (paper Section 4, MaxPartCount).  NOTE the clamp is PER BIN here,
+    //    unlike total_noised_synopsis above, which clamps the SUM:
+    //
+    //        T_paper = max(1, ceil( Σ_i max(0, DP_Bins[i]) / k ))     ← this one
+    //        T_code  = max(1, ceil( max(0, Σ_i DP_Bins[i])  / k ))    ← was used
+    //
+    //    They differ whenever any bin is negative.  DP_Bins = [10, -8, 10, -8],
+    //    k = 2 gives T_paper = ceil(20/2) = 10 but T_code = ceil(4/2) = 2, and a
+    //    5x smaller starting threshold produces different partition boundaries
+    //    and a different partition count.
+    //
+    //    Both clamping rules stay in the file on purpose, for DIFFERENT jobs:
+    //      * the THRESHOLD follows the paper (per-bin clamp), because that is
+    //        the published algorithm;
+    //      * a PARTITION's capacity keeps the signed sum, clamped once at the
+    //        end (see cur.noisy_synopsis below).  Per-bin clamping there would
+    //        reintroduce the positive bias that inflated ORAM trees ~70-100x on
+    //        PK-binned tables, since E[max(0, X)] > E[X] for every bin.
+    uint64_t total_clamped_bins = 0;
+    for (const auto& kv : noised_syn)
+        if (kv.second > 0) total_clamped_bins += static_cast<uint64_t>(kv.second);
+
+    std::cout << "Total noised synopsis: sum-of-clamped-bins = " << total_clamped_bins
+              << "  (paper's MaxPartCount input)\n"
+              << "                       clamped-sum        = " << total_noised_synopsis
               << "  (raw signed sum: " << total_noised_signed << ")\n\n";
 
     // Build a sorted bins vector.
@@ -218,15 +258,20 @@ std::vector<Partition> Repartition::Repartition_Main(
                   << "  k_eff=" << k_eff << "\n";
 
         const double alpha = 0.1;  // Threshold increase parameter
-        double T = std::ceil(static_cast<double>(total_noised_synopsis) / k_eff);
 
-        // Guard against tiny or zero tables.
-        // - If total_noised_synopsis is 0 (e.g., noise zeroed out a small table),
-        //   T starts at 0. Then ceil((1+alpha)*0) = 0 and we'd loop forever.
-        // - Even if T>0, (1+alpha)*T must make forward progress; use max(T+1, ceil(...)).
+        // Paper Section 4, MaxPartCount:
+        //     T = max( 1, ceil( Σ_i max(0, DP_Bins[i]) / k ) )
+        // (Was: ceil(max(0, Σ_i DP_Bins[i]) / k), which clamps the sum instead
+        //  of each bin and therefore starts from a smaller T whenever any bin
+        //  came out negative — see the note next to total_clamped_bins.)
+        double T = std::ceil(static_cast<double>(total_clamped_bins) / k_eff);
+
+        // max(1, ·): the paper's outer guard.  It also keeps the retry loop
+        // making progress — at T = 0, ceil((1+alpha)*0) = 0 would spin forever.
         if (T < 1.0) T = 1.0;
 
-        std::cout << "Initial threshold T = " << T << "\n";
+        std::cout << "Initial threshold T = " << T
+                  << "   [= max(1, ceil(" << total_clamped_bins << " / " << k_eff << "))]\n";
 
         // Safety cap: never iterate more than this many times.
         // Each iteration multiplies T by ~1.1 (or adds 1 when small), so even
@@ -292,7 +337,8 @@ std::vector<Partition> Repartition::Repartition_Main(
                     // dummy_num / stash_overflow_count are set
                     // authoritatively by the Case A/B block below the loop.
                     cur.dummy_num = 0;
-                    cur.stash_overflow_count = 0;
+                    cur.noise_stash_reserve = 0;
+                    cur.stash_overflow_count = 0;   // deprecated alias
 
                     parts.push_back(cur);
 
@@ -318,7 +364,8 @@ std::vector<Partition> Repartition::Repartition_Main(
                     ? static_cast<uint32_t>(signed_partition_sum)
                     : 0u;
                 cur.dummy_num = 0;
-                cur.stash_overflow_count = 0;
+                cur.noise_stash_reserve = 0;
+                cur.stash_overflow_count = 0;   // deprecated alias
 
                 parts.push_back(cur);
             }
@@ -391,7 +438,8 @@ std::vector<Partition> Repartition::Repartition_Main(
                     ? static_cast<uint32_t>(signed_partition_sum)
                     : 0u;
                 cur.dummy_num = 0;
-                cur.stash_overflow_count = 0;
+                cur.noise_stash_reserve = 0;
+                cur.stash_overflow_count = 0;   // deprecated alias
 
                 parts.push_back(cur);
                 start_idx = i + 1;
@@ -416,7 +464,8 @@ std::vector<Partition> Repartition::Repartition_Main(
                 ? static_cast<uint32_t>(signed_partition_sum)
                 : 0u;
             cur.dummy_num = 0;
-            cur.stash_overflow_count = 0;
+            cur.noise_stash_reserve = 0;
+            cur.stash_overflow_count = 0;   // deprecated alias
 
             parts.push_back(cur);
         }
@@ -433,12 +482,12 @@ std::vector<Partition> Repartition::Repartition_Main(
     //   Case A  noisy >= real:
     //     ORAM tree capacity  = noisy_synopsis  (= real + dummy_num)
     //     dummy_num           = noisy - real
-    //     stash_overflow_count = 0
+    //     noise_stash_reserve  = 0
     //
     //   Case B  noisy < real:
     //     ORAM tree capacity  = noisy_synopsis  (< real — server sees smaller tree)
     //     dummy_num           = 0               (no padding needed)
-    //     stash_overflow_count = real - noisy
+    //     noise_stash_reserve  = real - noisy   (extra stash CAPACITY to reserve)
     //       → RingORAM stash_limit is enlarged by stash_overflow_count so that
     //         the (real - noisy) overflow records permanently reside in the stash
     //         without triggering a stash overflow abort.
@@ -470,19 +519,24 @@ std::vector<Partition> Repartition::Repartition_Main(
 
             if (p.noisy_synopsis >= p.synopsis) {
                 // Case A: noisy >= real
-                p.dummy_num           = p.noisy_synopsis - p.synopsis;
-                p.stash_overflow_count = 0;
+                p.dummy_num            = p.noisy_synopsis - p.synopsis;
+                p.noise_stash_reserve  = 0;
+                p.stash_overflow_count = 0;   // deprecated alias
             } else {
                 // Case B: noisy < real — overflow permanently in stash
-                p.dummy_num           = 0;
-                p.stash_overflow_count = p.synopsis - p.noisy_synopsis;
+                // Tree stays at noisy_synopsis; the (real − noisy) records that
+                // cannot fit in it live in the stash — an outcome of the tree
+                // being full, not a fixed set of records.  Reserve capacity:
+                p.dummy_num            = 0;
+                p.noise_stash_reserve  = p.synopsis - p.noisy_synopsis;
+                p.stash_overflow_count = p.noise_stash_reserve;   // deprecated alias
             }
             // ORAM tree size is always noisy_synopsis (privacy invariant above).
             std::cout << "[Capacity]  partition:"
                       << "  real="            << p.synopsis
                       << "  noisy="           << p.noisy_synopsis
                       << "  dummy="           << p.dummy_num
-                      << "  stash_overflow="  << p.stash_overflow_count
+                      << "  noise_stash_reserve=" << p.noise_stash_reserve
                       << "  ORAM_tree_size="  << p.noisy_synopsis << "\n";
         }
     }

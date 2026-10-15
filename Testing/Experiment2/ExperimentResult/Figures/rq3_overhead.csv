@@ -1,0 +1,637 @@
+algorithm,query_mix,sweep,setting,offered_txn_s,alpha_query,placement,K,n_runs,slots_per_committed_txn_mean,slots_per_committed_txn_std,slots_per_admitted_txn_mean,slots_per_admitted_txn_std,contacted_frac_mean,contacted_frac_std,imbalance_exec_mean,imbalance_exec_std
+Alg3,mix (50% range),load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,13.993667,0.004619,13.821891,0.018892,1.0,0.0,1.563,0.010889
+Alg3,mix (50% range),load,skewed_data+matched_queries,100,1,DPart,13,3,179.072667,1.16512,179.073024,1.165134,0.849533,0.00739,1.870067,0.072041
+Alg3,mix (50% range),load,skewed_data+matched_queries,1e+03,1,DPart,13,3,20.799333,0.198137,20.796514,0.201991,0.999133,0.001501,1.6933,0.028512
+Alg3,mix (50% range),load,skewed_data+matched_queries,200,1,DPart,13,3,101.312333,1.418838,101.312262,1.418498,0.968367,0.010673,1.771067,0.056502
+Alg3,mix (50% range),load,skewed_data+matched_queries,2e+03,1,DPart,13,3,11.001667,0.040821,10.294357,0.04955,1.0,0.0,1.429333,0.012979
+Alg3,mix (50% range),load,skewed_data+matched_queries,3e+03,1,DPart,13,3,8.344,0.067757,6.895069,0.02079,1.0,0.0,1.2622,0.018449
+Alg3,mix (50% range),load,skewed_data+matched_queries,400,1,DPart,13,3,51.687667,0.809679,51.687522,0.809971,0.991467,0.005947,1.699133,0.028789
+Alg3,mix (50% range),load,skewed_data+matched_queries,50,1,DPart,13,3,293.593333,1.79203,293.593274,1.791968,0.700867,0.007845,1.822667,0.134377
+Alg3,mix (50% range),load,skewed_data+matched_queries,700,1,DPart,13,3,29.791667,0.350956,29.791798,0.35095,0.999133,0.001501,1.714533,0.025546
+Alg3,mix (50% range),load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.954333,0.0835,13.954214,0.083863,1.0,0.0,1.057933,0.013465
+Alg3,mix (50% range),load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,207.674,0.37258,207.673813,0.372617,0.988033,0.0053,1.0993,0.054071
+Alg3,mix (50% range),load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,21.091667,0.044546,21.091535,0.044621,1.0,0.0,1.062233,0.0066
+Alg3,mix (50% range),load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,105.539,0.0,105.539112,0.0,1.0,0.0,1.0778,0.040398
+Alg3,mix (50% range),load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.422333,0.014012,10.422087,0.014156,1.0,0.0,1.057033,0.009708
+Alg3,mix (50% range),load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,7.552333,0.03073,6.886119,0.054223,1.0,0.0,1.036667,0.004092
+Alg3,mix (50% range),load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13,3,52.732333,0.057726,52.732437,0.058005,1.0,0.0,1.0743,0.025436
+Alg3,mix (50% range),load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,385.795667,2.727689,385.795857,2.727568,0.917067,0.011573,1.191733,0.027188
+Alg3,mix (50% range),load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,30.093667,0.092197,30.093626,0.091919,1.0,0.0,1.056367,0.002194
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13,3,11.599,0.452385,10.980916,0.34932,0.775233,0.023853,4.6947,1.020367
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,100,1,DPart,13,3,74.77,1.01792,74.770274,1.018227,0.342767,0.003917,7.581533,0.182018
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,15.714667,0.36748,15.375078,0.339857,0.7188,0.015679,5.3861,1.284142
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,200,1,DPart,13,3,46.309667,2.913737,46.309733,2.913473,0.4248,0.028261,7.580867,1.27262
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.473667,0.873955,8.532544,0.064547,0.804267,0.003917,4.282967,0.757637
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,7.196,0.747609,6.085378,0.100022,0.865833,0.01412,3.793233,0.362204
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,400,1,DPart,13,3,30.494,1.361041,30.493758,1.361039,0.5607,0.025924,6.676033,1.474569
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,50,1,DPart,13,3,93.817333,10.31511,93.817191,10.315158,0.212833,0.020976,9.964833,1.224556
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,700,1,DPart,13,3,19.996,0.375771,19.540895,0.420133,0.641033,0.011707,7.5323,0.077167
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.993333,0.02442,13.993021,0.024477,1.0,0.0,1.1184,0.011732
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13,3,205.302333,0.732377,205.302415,0.732405,0.9795,0.0026,1.222867,0.058735
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,20.908,0.096948,20.907739,0.096715,1.0,0.0,1.115433,0.035258
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,104.917,0.514821,104.917286,0.51506,0.998267,0.001501,1.178633,0.019043
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.513,0.03995,10.512897,0.040314,1.0,0.0,1.1083,0.004115
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,6.955,0.02358,6.954799,0.023685,1.0,0.0,1.094233,0.012774
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.575333,0.18216,52.575458,0.181689,1.0,0.0,1.1665,0.0328
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13,3,385.088,3.793715,385.087797,3.793668,0.912833,0.006766,1.2499,0.113938
+Alg3,mix (50% range),load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,30.172667,0.087934,30.172429,0.088066,1.0,0.0,1.140467,0.049052
+Alg3,mix (50% range),load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,22.929667,0.057744,16.898737,0.032938,0.982633,0.003153,4.209733,0.033461
+Alg3,mix (50% range),load,uniform_data+skewed_queries,100,1,DPart,16,3,144.435333,3.574103,144.43531,3.574226,0.5465,0.011466,8.354233,0.121298
+Alg3,mix (50% range),load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,30.014667,0.261001,24.794579,0.08055,0.959733,0.003153,5.3031,0.064533
+Alg3,mix (50% range),load,uniform_data+skewed_queries,200,1,DPart,16,3,92.424,0.863938,92.423969,0.864236,0.709033,0.007328,7.8801,0.169928
+Alg3,mix (50% range),load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,18.946,0.147828,12.696118,0.031755,0.9889,0.003208,3.508767,0.01961
+Alg3,mix (50% range),load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,14.739,0.088831,8.484981,0.013485,0.995133,0.001155,2.7407,0.008365
+Alg3,mix (50% range),load,uniform_data+skewed_queries,400,1,DPart,16,3,56.664,0.305791,55.855187,0.428478,0.859733,0.009584,7.1811,0.083657
+Alg3,mix (50% range),load,uniform_data+skewed_queries,50,1,DPart,16,3,199.079,1.876895,199.078856,1.876712,0.3764,0.002425,8.943,0.15043
+Alg3,mix (50% range),load,uniform_data+skewed_queries,700,1,DPart,16,3,38.663667,0.238186,34.440912,0.154211,0.933333,0.00358,6.1704,0.048662
+Alg3,mix (50% range),load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.142333,0.050954,17.142162,0.051188,1.0,0.0,1.076867,0.018516
+Alg3,mix (50% range),load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,250.292667,1.104758,250.292512,1.104498,0.9743,0.003208,1.182033,0.033221
+Alg3,mix (50% range),load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.693,0.100015,25.693041,0.10035,1.0,0.0,1.084033,0.012579
+Alg3,mix (50% range),load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,128.761333,0.389423,128.761203,0.389845,0.9993,0.001212,1.143233,0.043897
+Alg3,mix (50% range),load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.819667,0.013013,12.819595,0.013398,1.0,0.0,1.068,0.004258
+Alg3,mix (50% range),load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.497333,0.015567,8.497161,0.015612,1.0,0.0,1.052267,0.004366
+Alg3,mix (50% range),load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.267667,0.033501,64.267794,0.033613,1.0,0.0,1.112167,0.045464
+Alg3,mix (50% range),load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,467.621667,1.430138,467.621452,1.430204,0.9146,0.0021,1.191,0.0585
+Alg3,mix (50% range),load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,36.739333,0.149581,36.739492,0.149265,1.0,0.0,1.0896,0.031296
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.0575,0.070004,17.056145,0.068635,1.0,0.0,1.1216,0.014991
+Alg3,mix (50% range),load,uniform_data+uniform_queries,100,1,DPart,16,3,204.194333,2.835447,204.194418,2.835709,0.7882,0.008388,1.416067,0.094065
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.81,0.0,25.809704,0.0,1.0,0.0,1.1473,0.0
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.181,0.0,17.181208,0.0,1.0,0.0,1.151,0.0
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.6805,0.014849,25.680328,0.015077,0.99895,0.001485,1.12845,0.006293
+Alg3,mix (50% range),load,uniform_data+uniform_queries,200,1,DPart,16,3,119.796667,0.309461,119.796484,0.309719,0.922933,0.005499,1.259033,0.04781
+Alg3,mix (50% range),load,uniform_data+uniform_queries,2000,1,DPart,16,1,12.837,0.0,12.834761,0.0,1.0,0.0,1.1183,0.0
+Alg3,mix (50% range),load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.789,0.005657,12.784685,0.002822,1.0,0.0,1.10135,0.013647
+Alg3,mix (50% range),load,uniform_data+uniform_queries,3000,1,DPart,16,1,8.755,0.0,8.482087,0.0,1.0,0.0,1.0682,0.0
+Alg3,mix (50% range),load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,8.7535,0.013435,8.440434,0.008609,1.0,0.0,1.0788,0.001697
+Alg3,mix (50% range),load,uniform_data+uniform_queries,400,1,DPart,16,3,63.383333,0.192074,63.383075,0.191971,0.981233,0.00415,1.1718,0.014549
+Alg3,mix (50% range),load,uniform_data+uniform_queries,50,1,DPart,16,3,310.523667,5.354005,310.523681,5.353723,0.593067,0.013867,1.774433,0.150064
+Alg3,mix (50% range),load,uniform_data+uniform_queries,700,1,DPart,16,3,36.74,0.180972,36.739921,0.18117,0.996533,0.003164,1.150067,0.022034
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.135,0.034511,17.134936,0.03465,1.0,0.0,1.045367,0.002346
+Alg3,mix (50% range),load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,249.774,1.997788,249.773942,1.997382,0.9743,0.006317,1.127533,0.034467
+Alg3,mix (50% range),load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.701333,0.043981,25.701786,0.043977,1.0,0.0,1.041367,0.006101
+Alg3,mix (50% range),load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,128.942333,0.467945,128.942453,0.467966,0.9986,0.001212,1.114667,0.013796
+Alg3,mix (50% range),load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.768667,0.04596,12.768634,0.04635,1.0,0.0,1.0414,0.008764
+Alg3,mix (50% range),load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,8.560333,0.051326,8.457985,0.053102,1.0,0.0,1.0345,0.005864
+Alg3,mix (50% range),load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.505667,0.380277,64.505437,0.380308,1.0,0.0,1.0673,0.023516
+Alg3,mix (50% range),load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,459.322667,4.634086,459.323029,4.634007,0.895833,0.00415,1.189633,0.075009
+Alg3,mix (50% range),load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.894333,0.188089,36.894156,0.188365,1.0,0.0,1.0552,0.010741
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,0,DPart,13,3,12.944333,0.340568,10.238208,0.107676,0.978667,0.005947,2.348633,0.066751
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,0.5,DPart,13,3,11.347333,0.135138,10.33205,0.093565,1.0,0.0,1.653,0.049067
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,1,DPart,13,3,11.023667,0.026727,10.309485,0.027935,1.0,0.0,1.431167,0.013844
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,1.5,DPart,13,3,16.170667,0.070117,10.271146,0.029286,0.9923,0.0026,2.278867,0.013683
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,2,DPart,13,3,19.084667,0.332351,8.689416,0.089076,0.841033,0.015585,3.326167,0.016485
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,0,DPart eps=0 (random),13,3,10.400333,0.035233,10.400439,0.03492,1.0,0.0,1.058833,0.012285
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.437333,0.044959,10.437458,0.045061,1.0,0.0,1.0529,0.013528
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.432,0.013115,10.431886,0.013143,1.0,0.0,1.057033,0.008533
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,1.5,DPart eps=0 (random),13,3,10.371667,0.045797,10.371683,0.045548,1.0,0.0,1.0579,0.009897
+Alg3,mix (50% range),skew,skewed_data+matched_queries,2e+03,2,DPart eps=0 (random),13,3,10.431667,0.051695,10.431684,0.051792,1.0,0.0,1.067033,0.017972
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0,DPart,13,3,12.877,0.386493,10.170422,0.045887,0.979533,0.004446,2.3386,0.076624
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0.5,DPart,13,3,11.450333,0.147188,9.84058,0.086312,0.9376,0.009694,2.879067,0.01321
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.375,0.696778,8.499154,0.243529,0.805133,0.026989,4.317067,0.691705
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1.5,DPart,13,3,5.882,0.127012,5.881783,0.126884,0.546167,0.011762,6.431167,0.242145
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,2,DPart,13,3,2.738333,0.199003,2.738164,0.199285,0.249567,0.0189,10.639067,0.899726
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0,DPart eps=0 (random),13,3,10.452,0.031241,10.451958,0.03098,1.0,0.0,1.057967,0.013683
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.438,0.038974,10.438151,0.038649,1.0,0.0,1.064633,0.008156
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.486,0.032187,10.485992,0.03208,1.0,0.0,1.1077,0.007503
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1.5,DPart eps=0 (random),13,3,10.522667,0.003215,10.522766,0.002934,1.0,0.0,1.162867,0.019231
+Alg3,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,2,DPart eps=0 (random),13,3,10.508,0.029309,10.508052,0.029021,1.0,0.0,1.2493,0.073613
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0,DPart,16,3,12.814,0.051971,12.810382,0.053859,1.0,0.0,1.107,0.00907
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0.5,DPart,16,3,14.215,0.074586,12.775734,0.050121,1.0,0.0,2.020133,0.021186
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1,DPart,16,3,18.986333,0.108933,12.704604,0.00948,0.9896,0.0021,3.514,0.016576
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1.5,DPart,16,3,17.785,0.124012,10.780986,0.096447,0.831233,0.009569,6.959233,0.045773
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,2,DPart,16,3,8.020667,0.114177,5.914591,0.062963,0.4472,0.003208,11.706233,0.051834
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0,DPart eps=0 (random),16,3,12.756667,0.028113,12.756634,0.028449,1.0,0.0,1.042867,0.008856
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.765667,0.008083,12.765872,0.007993,1.0,0.0,1.056633,0.009498
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.810333,0.002082,12.810231,0.00204,1.0,0.0,1.067667,0.005064
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.862,0.01,12.862083,0.010105,1.0,0.0,1.120533,0.009362
+Alg3,mix (50% range),skew,uniform_data+skewed_queries,2e+03,2,DPart eps=0 (random),16,3,12.873333,0.044061,12.873406,0.0439,1.0,0.0,1.178867,0.055886
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2000,0,DPart,16,1,12.788,0.0,12.78535,0.0,1.0,0.0,1.1131,0.0
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2000,0.5,DPart,16,1,12.845,0.0,12.841467,0.0,1.0,0.0,1.1187,0.0
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2000,1,DPart,16,1,12.908,0.0,12.904852,0.0,1.0,0.0,1.1157,0.0
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2000,1.5,DPart,16,1,12.816,0.0,12.813347,0.0,1.0,0.0,1.1119,0.0
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2000,2,DPart,16,1,12.831,0.0,12.829401,0.0,1.0,0.0,1.1145,0.0
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0,DPart,16,2,12.7365,0.024749,12.731075,0.029846,1.0,0.0,1.1028,0.012728
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0.5,DPart,16,2,12.763,0.002828,12.758137,0.000937,1.0,0.0,1.10505,0.010536
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.737,0.007071,12.731041,0.003731,1.0,0.0,1.1024,0.012869
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1.5,DPart,16,2,12.8015,0.013435,12.796672,0.010366,1.0,0.0,1.0995,0.010607
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,2,DPart,16,2,12.786,0.029698,12.780721,0.025379,1.0,0.0,1.09895,0.009829
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0,DPart eps=0 (random),16,3,12.744,0.040336,12.74389,0.040588,1.0,0.0,1.041533,0.008779
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.721333,0.043822,12.721037,0.043878,1.0,0.0,1.042433,0.007563
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.758333,0.078996,12.758243,0.078902,1.0,0.0,1.041667,0.008805
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.792,0.031193,12.792057,0.0315,1.0,0.0,1.041933,0.00933
+Alg3,mix (50% range),skew,uniform_data+uniform_queries,2e+03,2,DPart eps=0 (random),16,3,12.796667,0.038889,12.796523,0.038612,1.0,0.0,1.042167,0.008225
+Alg3,point-only,load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,13.945667,0.063058,13.945621,0.062889,1.0,0.0,2.226533,0.013369
+Alg3,point-only,load,skewed_data+matched_queries,100,1,DPart,13,3,189.796,4.784033,189.796283,4.784023,0.899133,0.020912,2.1952,0.039536
+Alg3,point-only,load,skewed_data+matched_queries,1e+03,1,DPart,13,3,20.934333,0.147748,20.934439,0.147466,1.0,0.0,2.213633,0.015414
+Alg3,point-only,load,skewed_data+matched_queries,200,1,DPart,13,3,101.765,0.880969,101.764981,0.880667,0.977767,0.001501,2.2817,0.055437
+Alg3,point-only,load,skewed_data+matched_queries,2e+03,1,DPart,13,3,10.366667,0.049238,10.366682,0.049416,1.0,0.0,2.2122,0.00477
+Alg3,point-only,load,skewed_data+matched_queries,3e+03,1,DPart,13,3,7.220667,0.034196,6.935466,0.021703,1.0,0.0,2.091533,0.006218
+Alg3,point-only,load,skewed_data+matched_queries,400,1,DPart,13,3,52.087667,0.450592,52.087777,0.450335,0.9957,0.002944,2.217633,0.023214
+Alg3,point-only,load,skewed_data+matched_queries,50,1,DPart,13,3,317.637667,7.011743,317.637698,7.011947,0.7487,0.020044,1.9768,0.049634
+Alg3,point-only,load,skewed_data+matched_queries,700,1,DPart,13,3,29.890667,0.272713,29.890899,0.272771,1.0,0.0,2.1885,0.016786
+Alg3,point-only,load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,14.078667,0.065248,14.078695,0.064939,1.0,0.0,1.079267,0.023356
+Alg3,point-only,load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,192.089333,1.610405,192.089427,1.61048,0.9094,0.010355,1.1826,0.043162
+Alg3,point-only,load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,21.139333,0.086223,21.139341,0.086146,1.0,0.0,1.093167,0.027336
+Alg3,point-only,load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,103.830333,0.344996,103.830347,0.345351,0.980333,0.003917,1.110133,0.010161
+Alg3,point-only,load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.538333,0.027006,10.538362,0.027265,1.0,0.0,1.068233,0.013895
+Alg3,point-only,load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,6.997333,0.023116,6.997366,0.023434,1.0,0.0,1.055967,0.010418
+Alg3,point-only,load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13,3,52.771333,0.240084,52.771436,0.240591,0.999133,0.001501,1.079,0.014514
+Alg3,point-only,load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,326.221333,4.0441,326.221436,4.044167,0.762367,0.009031,1.251067,0.058673
+Alg3,point-only,load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,30.13,0.018735,30.129774,0.018923,1.0,0.0,1.082933,0.012632
+Alg3,point-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13,3,11.685333,0.230185,11.685569,0.230172,0.827333,0.012118,5.547767,0.04554
+Alg3,point-only,load,skewed_data+mismatched_queries,100,1,DPart,13,3,87.132,0.277173,87.132242,0.277343,0.4,0.0051,8.539633,0.173881
+Alg3,point-only,load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,16.374333,0.220663,16.374222,0.220397,0.7658,0.012934,5.983533,0.106206
+Alg3,point-only,load,skewed_data+mismatched_queries,200,1,DPart,13,3,49.855,0.746645,49.854861,0.746694,0.461533,0.004446,9.546733,0.030861
+Alg3,point-only,load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.268333,0.319535,9.071102,0.153874,0.858967,0.011184,5.800433,1.394376
+Alg3,point-only,load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,6.654,0.306207,6.433058,0.056718,0.911967,0.008208,5.135,1.251726
+Alg3,point-only,load,skewed_data+mismatched_queries,400,1,DPart,13,3,33.314333,0.358274,33.314338,0.358146,0.6205,0.0051,7.928133,1.101587
+Alg3,point-only,load,skewed_data+mismatched_queries,50,1,DPart,13,3,120.889,12.329292,120.888889,12.329482,0.276933,0.028897,9.494833,0.744493
+Alg3,point-only,load,skewed_data+mismatched_queries,700,1,DPart,13,3,21.956667,0.705856,21.956726,0.705947,0.716233,0.021345,7.2543,1.233284
+Alg3,point-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13,3,14.103333,0.030022,14.103065,0.029909,1.0,0.0,1.134933,0.025799
+Alg3,point-only,load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13,3,191.549333,0.204688,191.549352,0.204376,0.906867,0.003917,1.330433,0.162661
+Alg3,point-only,load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,21.12,0.076236,21.119912,0.075967,1.0,0.0,1.145967,0.027658
+Alg3,point-only,load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,103.441333,0.485041,103.441436,0.485287,0.9846,0.0051,1.2839,0.114624
+Alg3,point-only,load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.538,0.044306,10.537698,0.044231,1.0,0.0,1.118767,0.028926
+Alg3,point-only,load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,7.026667,0.022008,7.026743,0.022035,1.0,0.0,1.103733,0.011142
+Alg3,point-only,load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.790667,0.355832,52.790814,0.355867,0.999133,0.001501,1.244467,0.064417
+Alg3,point-only,load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13,3,325.646333,7.170874,325.646413,7.170823,0.755567,0.012079,1.3927,0.147172
+Alg3,point-only,load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,30.136,0.073,30.135946,0.07277,1.0,0.0,1.1636,0.043862
+Alg3,point-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,18.172667,0.085909,17.152381,0.099381,0.994433,0.002367,6.399133,0.026685
+Alg3,point-only,load,uniform_data+skewed_queries,100,1,DPart,16,3,166.351667,1.561041,166.35188,1.561168,0.634033,0.008433,8.454867,0.113512
+Alg3,point-only,load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,25.418,0.201933,25.392949,0.199019,0.978467,0.006361,6.977433,0.036567
+Alg3,point-only,load,uniform_data+skewed_queries,200,1,DPart,16,3,104.009667,0.739817,104.009878,0.739691,0.7993,0.004371,8.264733,0.088019
+Alg3,point-only,load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,14.115,0.072339,12.851135,0.049723,0.9965,0.001212,5.883033,0.004193
+Alg3,point-only,load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,10.027333,0.029771,8.586115,0.035507,0.9993,0.001212,5.0759,0.012856
+Alg3,point-only,load,uniform_data+skewed_queries,400,1,DPart,16,3,58.920667,0.209815,58.920442,0.209839,0.906233,0.005499,7.8834,0.052735
+Alg3,point-only,load,uniform_data+skewed_queries,50,1,DPart,16,3,239.286,2.122128,239.286187,2.122083,0.4569,0.001212,8.589833,0.084287
+Alg3,point-only,load,uniform_data+skewed_queries,700,1,DPart,16,3,35.565,0.096576,35.564836,0.096235,0.9604,0.003637,7.434233,0.056263
+Alg3,point-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.252333,0.068973,17.252148,0.068812,1.0,0.0,1.098667,0.026573
+Alg3,point-only,load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,224.157333,2.861099,224.157184,2.860885,0.8653,0.011466,1.252367,0.038924
+Alg3,point-only,load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.869667,0.035838,25.869507,0.035724,1.0,0.0,1.1,0.039509
+Alg3,point-only,load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,123.428,0.622269,123.427997,0.622353,0.956267,0.00625,1.1631,0.051441
+Alg3,point-only,load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.957,0.086238,12.95694,0.08617,1.0,0.0,1.094733,0.030042
+Alg3,point-only,load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.622,0.014,8.621962,0.013754,1.0,0.0,1.0777,0.012111
+Alg3,point-only,load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.370667,0.03402,64.370865,0.033873,0.994433,0.002367,1.139667,0.042884
+Alg3,point-only,load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,370.735333,11.352928,370.735197,11.352806,0.709,0.022932,1.272367,0.048545
+Alg3,point-only,load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,36.916,0.105532,36.916122,0.10541,0.9993,0.001212,1.108667,0.032401
+Alg3,point-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.221,0.025456,17.220957,0.025598,1.0,0.0,1.0903,0.016971
+Alg3,point-only,load,uniform_data+uniform_queries,100,1,DPart,16,3,227.815667,2.238695,227.815602,2.238804,0.870133,0.011451,1.276967,0.020279
+Alg3,point-only,load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.902,0.0,25.902192,0.0,1.0,0.0,1.0978,0.0
+Alg3,point-only,load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.28,0.0,17.28027,0.0,1.0,0.0,1.0797,0.0
+Alg3,point-only,load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.8455,0.188798,25.845675,0.188349,1.0,0.0,1.09205,0.008415
+Alg3,point-only,load,uniform_data+uniform_queries,200,1,DPart,16,3,124.247667,1.153843,124.247667,1.153698,0.965267,0.006694,1.2269,0.012022
+Alg3,point-only,load,uniform_data+uniform_queries,2000,1,DPart,16,1,12.84,0.0,12.840125,0.0,1.0,0.0,1.0711,0.0
+Alg3,point-only,load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.91,0.059397,12.910412,0.059466,1.0,0.0,1.0855,0.01895
+Alg3,point-only,load,uniform_data+uniform_queries,3000,1,DPart,16,1,8.479,0.0,8.479161,0.0,1.0,0.0,1.0838,0.0
+Alg3,point-only,load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,8.573,0.002828,8.573223,0.002538,1.0,0.0,1.0588,0.00297
+Alg3,point-only,load,uniform_data+uniform_queries,400,1,DPart,16,3,64.315,0.141481,64.315054,0.141567,0.993067,0.004315,1.1371,0.016659
+Alg3,point-only,load,uniform_data+uniform_queries,50,1,DPart,16,3,360.572333,2.097579,360.572099,2.097477,0.694433,0.005239,1.243,0.025556
+Alg3,point-only,load,uniform_data+uniform_queries,700,1,DPart,16,3,36.912333,0.07259,36.912081,0.072677,1.0,0.0,1.0908,0.013692
+Alg3,point-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.216,0.084504,17.215986,0.08442,1.0,0.0,1.060633,0.00601
+Alg3,point-only,load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,227.860667,2.078552,227.860571,2.078324,0.877067,0.005518,1.206567,0.061892
+Alg3,point-only,load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.858667,0.051733,25.858655,0.051926,1.0,0.0,1.069367,0.013981
+Alg3,point-only,load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,125.257667,0.205918,125.25745,0.205881,0.967367,0.003153,1.132367,0.007305
+Alg3,point-only,load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.919,0.031048,12.918922,0.031285,1.0,0.0,1.055067,0.022258
+Alg3,point-only,load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,8.595,0.001,8.595211,0.000918,1.0,0.0,1.0458,0.0082
+Alg3,point-only,load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.54,0.235559,64.540087,0.235345,0.9965,0.001212,1.088733,0.02197
+Alg3,point-only,load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,369.103,3.503935,369.103074,3.503811,0.6979,0.013672,1.311967,0.099975
+Alg3,point-only,load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.938,0.129965,36.938179,0.12978,1.0,0.0,1.0787,0.028381
+Alg3,range-only,load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,15.973333,0.194672,13.810103,0.125086,0.999133,0.001501,1.378433,0.015936
+Alg3,range-only,load,skewed_data+matched_queries,100,1,DPart,13,3,161.539,1.563858,161.539119,1.564063,0.7658,0.002944,1.811633,0.021058
+Alg3,range-only,load,skewed_data+matched_queries,1e+03,1,DPart,13,3,21.488667,0.207165,20.721648,0.235402,0.9957,0.005356,1.6169,0.010085
+Alg3,range-only,load,skewed_data+matched_queries,200,1,DPart,13,3,94.535667,1.506494,94.535411,1.506601,0.8932,0.010355,1.736133,0.019549
+Alg3,range-only,load,skewed_data+matched_queries,2e+03,1,DPart,13,3,13.306667,0.014295,10.312397,0.043602,1.0,0.0,1.280333,0.006043
+Alg3,range-only,load,skewed_data+matched_queries,3e+03,1,DPart,13,3,10.938333,0.034675,6.819353,0.038632,1.0,0.0,1.216,0.000656
+Alg3,range-only,load,skewed_data+matched_queries,400,1,DPart,13,3,50.869333,0.445711,50.869103,0.445765,0.969233,0.00515,1.7453,0.019226
+Alg3,range-only,load,skewed_data+matched_queries,50,1,DPart,13,3,247.928667,5.61364,247.92893,5.613558,0.580333,0.019552,1.579067,0.038032
+Alg3,range-only,load,skewed_data+matched_queries,700,1,DPart,13,3,29.679,0.215613,29.663893,0.204785,0.994033,0.001501,1.714767,0.021866
+Alg3,range-only,load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,14.117333,0.033606,13.82064,0.02943,1.0,0.0,1.041333,0.003842
+Alg3,range-only,load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,211.049,0.720533,211.048891,0.720498,0.999133,0.001501,1.094033,0.022772
+Alg3,range-only,load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,20.975,0.035,20.974829,0.035252,1.0,0.0,1.049167,0.011288
+Alg3,range-only,load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,105.837667,0.258653,105.837878,0.258739,1.0,0.0,1.075267,0.02715
+Alg3,range-only,load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,12.060667,0.03402,10.350074,0.020686,1.0,0.0,1.0376,0.005551
+Alg3,range-only,load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,10.521,0.005292,6.841487,0.008255,1.0,0.0,1.0309,0.006366
+Alg3,range-only,load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13,3,52.585,0.262177,52.58514,0.262377,1.0,0.0,1.0581,0.019239
+Alg3,range-only,load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,406.709,5.44583,406.708928,5.445817,0.980333,0.009729,1.1184,0.030979
+Alg3,range-only,load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,29.958333,0.125954,29.958347,0.126354,1.0,0.0,1.052967,0.006735
+Alg3,range-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13,3,12.188667,0.954919,10.233074,0.232557,0.719667,0.017081,4.387033,0.58068
+Alg3,range-only,load,skewed_data+mismatched_queries,100,1,DPart,13,3,58.151667,1.149694,58.151627,1.149573,0.261533,0.006822,7.825433,0.1299
+Alg3,range-only,load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,14.766333,0.630793,13.956139,0.502023,0.6504,0.025692,4.6376,1.024713
+Alg3,range-only,load,skewed_data+mismatched_queries,200,1,DPart,13,3,37.92,3.43632,37.920227,3.436319,0.3436,0.031066,7.301867,1.1629
+Alg3,range-only,load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.587333,0.896129,8.200323,0.207655,0.776067,0.018521,3.742933,0.306367
+Alg3,range-only,load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,7.606,0.785596,5.728786,0.125178,0.8205,0.018485,3.252667,0.155019
+Alg3,range-only,load,skewed_data+mismatched_queries,400,1,DPart,13,3,25.695667,1.837884,25.595456,2.000457,0.4675,0.03808,6.117167,1.254268
+Alg3,range-only,load,skewed_data+mismatched_queries,50,1,DPart,13,3,75.576333,11.803102,75.576253,11.803024,0.170933,0.025306,9.743133,0.840129
+Alg3,range-only,load,skewed_data+mismatched_queries,700,1,DPart,13,3,17.974333,0.071675,16.924779,0.065056,0.549567,0.001501,6.408667,0.084899
+Alg3,range-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.959,0.058387,13.959244,0.058565,1.0,0.0,1.067933,0.014684
+Alg3,range-only,load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13,3,210.273,0.233615,210.2731,0.233596,0.998267,0.001501,1.2207,0.080755
+Alg3,range-only,load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,20.988,0.018,20.988028,0.017648,1.0,0.0,1.073367,0.01975
+Alg3,range-only,load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,105.28,0.339766,105.280167,0.339502,1.0,0.0,1.163267,0.052876
+Alg3,range-only,load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.402,0.045211,10.401935,0.044789,1.0,0.0,1.074067,0.012621
+Alg3,range-only,load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,6.918333,0.02442,6.918178,0.024568,1.0,0.0,1.065767,0.010673
+Alg3,range-only,load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.742,0.194286,52.74216,0.194654,1.0,0.0,1.1179,0.037684
+Alg3,range-only,load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13,3,402.945,1.37252,402.944987,1.372386,0.972633,0.003917,1.264033,0.114492
+Alg3,range-only,load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,30.069,0.018735,30.069278,0.018857,1.0,0.0,1.081133,0.027647
+Alg3,range-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,26.611333,0.074205,16.393142,0.079654,0.955533,0.004792,3.037667,0.014075
+Alg3,range-only,load,uniform_data+skewed_queries,100,1,DPart,16,3,106.660333,3.635652,106.660219,3.636052,0.401367,0.017334,7.883967,0.250761
+Alg3,range-only,load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,33.451333,0.101491,23.695916,0.196569,0.918767,0.009096,3.9303,0.035763
+Alg3,range-only,load,uniform_data+skewed_queries,200,1,DPart,16,3,76.66,2.006683,76.576087,1.922417,0.5771,0.015755,7.505833,0.134752
+Alg3,range-only,load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,22.752667,0.208797,12.55404,0.059005,0.981933,0.006361,2.530567,0.019582
+Alg3,range-only,load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,17.589333,0.0673,8.396683,0.044289,0.992367,0.003153,1.9801,0.003291
+Alg3,range-only,load,uniform_data+skewed_queries,400,1,DPart,16,3,55.38,0.059775,49.705503,0.423103,0.7618,0.005285,6.0786,0.036958
+Alg3,range-only,load,uniform_data+skewed_queries,50,1,DPart,16,3,157.348,5.805841,157.348058,5.806055,0.293767,0.01455,7.4994,0.197867
+Alg3,range-only,load,uniform_data+skewed_queries,700,1,DPart,16,3,40.686667,0.199385,31.871126,0.072335,0.8583,0.0021,4.8421,0.043836
+Alg3,range-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.011667,0.05232,17.011643,0.052125,1.0,0.0,1.071233,0.004912
+Alg3,range-only,load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,256.178667,0.617188,256.178522,0.617449,0.9979,0.0021,1.1317,0.04556
+Alg3,range-only,load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.746333,0.038527,25.746651,0.038288,1.0,0.0,1.0767,0.012249
+Alg3,range-only,load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,129.257,0.207853,129.256885,0.207793,1.0,0.0,1.108367,0.02452
+Alg3,range-only,load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.724333,0.015044,12.724461,0.015198,1.0,0.0,1.055133,0.00485
+Alg3,range-only,load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.402,0.073185,8.402285,0.073065,1.0,0.0,1.048467,0.011261
+Alg3,range-only,load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.470667,0.21177,64.470557,0.211537,1.0,0.0,1.091367,0.023959
+Alg3,range-only,load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,491.289667,5.768371,491.289676,5.768623,0.971533,0.009868,1.174033,0.016431
+Alg3,range-only,load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,36.768,0.039661,36.768431,0.039684,1.0,0.0,1.083933,0.013896
+Alg3,range-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.1385,0.074246,16.988702,0.083416,0.99685,0.001485,1.0971,0.022345
+Alg3,range-only,load,uniform_data+uniform_queries,100,1,DPart,16,3,168.233,2.849697,168.232909,2.849848,0.6389,0.00937,1.4396,0.046581
+Alg3,range-only,load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.605,0.0,25.605346,0.0,0.9979,0.0,1.1138,0.0
+Alg3,range-only,load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.215,0.0,17.028825,0.0,1.0,0.0,1.0911,0.0
+Alg3,range-only,load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.287,0.231931,25.286948,0.231884,0.99165,0.005869,1.1164,0.021072
+Alg3,range-only,load,uniform_data+uniform_queries,200,1,DPart,16,3,107.93,0.592527,107.930333,0.592575,0.8215,0.002425,1.2067,0.011781
+Alg3,range-only,load,uniform_data+uniform_queries,2000,1,DPart,16,1,13.529,0.0,12.745566,0.0,1.0,0.0,1.0764,0.0
+Alg3,range-only,load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,13.493,0.025456,12.709982,0.016733,1.0,0.0,1.0759,0.011314
+Alg3,range-only,load,uniform_data+uniform_queries,3000,1,DPart,16,1,10.742,0.0,8.391723,0.0,1.0,0.0,1.0633,0.0
+Alg3,range-only,load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,10.778,0.038184,8.418457,0.00367,1.0,0.0,1.05305,0.003323
+Alg3,range-only,load,uniform_data+uniform_queries,400,1,DPart,16,3,60.744667,0.548055,60.744854,0.548104,0.939567,0.009096,1.1484,0.015601
+Alg3,range-only,load,uniform_data+uniform_queries,50,1,DPart,16,3,222.955333,4.396545,222.955305,4.396408,0.4125,0.0104,1.310367,0.012153
+Alg3,range-only,load,uniform_data+uniform_queries,700,1,DPart,16,3,36.239667,0.268487,36.239617,0.268352,0.985433,0.00625,1.131267,0.024758
+Alg3,range-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,16.986333,0.024583,16.986477,0.024744,1.0,0.0,1.0436,0.003816
+Alg3,range-only,load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,255.999,0.535501,255.999253,0.535568,0.995833,0.00415,1.107367,0.009473
+Alg3,range-only,load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.486667,0.040017,25.486767,0.039672,1.0,0.0,1.0442,0.003351
+Alg3,range-only,load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,129.393,0.157617,129.392897,0.157219,1.0,0.0,1.072067,0.010194
+Alg3,range-only,load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,13.125667,0.057143,12.669461,0.046365,1.0,0.0,1.041367,0.005987
+Alg3,range-only,load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,10.704333,0.063893,8.39111,0.043639,1.0,0.0,1.029,0.001039
+Alg3,range-only,load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.335,0.034,64.33509,0.033683,1.0,0.0,1.058233,0.008626
+Alg3,range-only,load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,493.887333,4.758922,493.887214,4.759405,0.9646,0.009062,1.154567,0.056234
+Alg3,range-only,load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.750333,0.1765,36.750639,0.176422,1.0,0.0,1.048733,0.006014
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,0,DPart,13,3,15.524333,1.189316,10.048175,0.035051,0.968367,0.001443,1.991667,0.02507
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,0.5,DPart,13,3,13.086667,0.294748,10.379545,0.036901,1.0,0.0,1.4063,0.021577
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,1,DPart,13,3,13.263333,0.017954,10.261565,0.050396,1.0,0.0,1.277567,0.006577
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,1.5,DPart,13,3,18.666667,0.195832,10.124319,0.103768,0.986333,0.005316,1.8923,0.021579
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,2,DPart,13,3,23.433333,0.605885,8.618863,0.232998,0.835,0.02327,2.751933,0.00405
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,0,DPart eps=0 (random),13,3,10.382,0.063851,10.355285,0.05967,1.0,0.0,1.061033,0.00846
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,0.5,DPart eps=0 (random),13,3,11.122,0.020224,10.369406,0.012855,1.0,0.0,1.0397,0.014366
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,12.062667,0.028729,10.363659,0.007927,1.0,0.0,1.037467,0.004539
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,1.5,DPart eps=0 (random),13,3,11.312,0.095849,10.376329,0.04092,1.0,0.0,1.0463,0.004571
+Alg3,range-only,skew,skewed_data+matched_queries,2e+03,2,DPart eps=0 (random),13,3,10.827,0.085282,10.364174,0.049933,1.0,0.0,1.0611,0.010402
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,0,DPart,13,3,14.860333,0.062581,10.105795,0.028366,0.9701,0.003928,1.9757,0.006609
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,0.5,DPart,13,3,14.292667,2.355893,9.628353,0.03438,0.921367,0.005316,2.478367,0.069038
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.789667,0.891925,8.240742,0.19344,0.778667,0.020727,3.704333,0.359443
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,1.5,DPart,13,3,5.155333,0.106978,5.131068,0.108803,0.475233,0.008979,5.7455,0.249826
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,2,DPart,13,3,2.185,0.318463,2.18514,0.317984,0.199967,0.029568,10.734567,1.095023
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,0,DPart eps=0 (random),13,3,10.416333,0.062324,10.387204,0.054129,1.0,0.0,1.061233,0.009009
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.427667,0.014224,10.427529,0.013886,1.0,0.0,1.0643,0.009199
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.445667,0.023007,10.445369,0.02296,1.0,0.0,1.071967,0.0116
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,1.5,DPart eps=0 (random),13,3,10.500333,0.043016,10.500749,0.042998,1.0,0.0,1.128867,0.013073
+Alg3,range-only,skew,skewed_data+mismatched_queries,2e+03,2,DPart eps=0 (random),13,3,10.487667,0.017898,10.487416,0.018024,1.0,0.0,1.230967,0.03767
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,0,DPart,16,3,13.465333,0.035218,12.668977,0.035278,1.0,0.0,1.0727,0.006065
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,0.5,DPart,16,3,15.282333,0.026577,12.722309,0.048426,0.9993,0.001212,1.616867,0.000208
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,1,DPart,16,3,22.791333,0.146868,12.601947,0.083366,0.982633,0.005232,2.5342,0.018713
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,1.5,DPart,16,3,23.124333,0.417088,10.057455,0.115422,0.780567,0.002367,5.1993,0.052295
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,2,DPart,16,3,9.557667,0.270064,5.321973,0.083125,0.402067,0.00835,10.183467,0.095712
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,0,DPart eps=0 (random),16,3,13.151667,0.052367,12.700997,0.065003,1.0,0.0,1.041733,0.007276
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.831667,0.027502,12.690302,0.019297,1.0,0.0,1.0511,0.016532
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.703,0.059304,12.703147,0.059053,1.0,0.0,1.056233,0.004319
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.754,0.014526,12.753955,0.01458,1.0,0.0,1.0927,0.004004
+Alg3,range-only,skew,uniform_data+skewed_queries,2e+03,2,DPart eps=0 (random),16,3,12.808667,0.008505,12.808899,0.008687,1.0,0.0,1.146533,0.033866
+Alg3,range-only,skew,uniform_data+uniform_queries,2000,0,DPart,16,1,13.5,0.0,12.699463,0.0,1.0,0.0,1.0752,0.0
+Alg3,range-only,skew,uniform_data+uniform_queries,2000,0.5,DPart,16,1,13.554,0.0,12.76145,0.0,1.0,0.0,1.0734,0.0
+Alg3,range-only,skew,uniform_data+uniform_queries,2000,1,DPart,16,1,13.474,0.0,12.641975,0.0,1.0,0.0,1.0722,0.0
+Alg3,range-only,skew,uniform_data+uniform_queries,2000,1.5,DPart,16,1,13.497,0.0,12.716548,0.0,1.0,0.0,1.0736,0.0
+Alg3,range-only,skew,uniform_data+uniform_queries,2000,2,DPart,16,1,13.517,0.0,12.721814,0.0,1.0,0.0,1.0752,0.0
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,0,DPart,16,2,13.498,0.001414,12.723872,0.045649,1.0,0.0,1.07255,0.010394
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,0.5,DPart,16,2,13.466,0.015556,12.678506,0.0148,1.0,0.0,1.07355,0.009405
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,1,DPart,16,2,13.453,0.005657,12.660866,0.010147,1.0,0.0,1.0698,0.009617
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,1.5,DPart,16,2,13.4915,0.019092,12.709978,0.013014,1.0,0.0,1.07025,0.007425
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,2,DPart,16,2,13.4505,0.026163,12.659573,0.019367,1.0,0.0,1.07415,0.01195
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,0,DPart eps=0 (random),16,3,13.132,0.032741,12.690771,0.031455,1.0,0.0,1.041033,0.004834
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,0.5,DPart eps=0 (random),16,3,13.158333,0.034559,12.694697,0.029214,1.0,0.0,1.041533,0.004941
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,13.12,0.027839,12.667619,0.015588,1.0,0.0,1.041367,0.005706
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,1.5,DPart eps=0 (random),16,3,13.127667,0.047173,12.662015,0.035267,1.0,0.0,1.041633,0.00468
+Alg3,range-only,skew,uniform_data+uniform_queries,2e+03,2,DPart eps=0 (random),16,3,13.144667,0.031214,12.69879,0.06208,1.0,0.0,1.041067,0.005908
+Alg4,mix (50% range),load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,13.904667,0.099057,13.726194,0.11081,1.0,0.0,1.552133,0.006926
+Alg4,mix (50% range),load,skewed_data+matched_queries,100,1,DPart,13,3,177.734667,2.37584,177.734726,2.376081,0.846167,0.00765,1.875133,0.063827
+Alg4,mix (50% range),load,skewed_data+matched_queries,1e+03,1,DPart,13,3,20.891667,0.079356,20.891599,0.079101,1.0,0.0,1.698633,0.032135
+Alg4,mix (50% range),load,skewed_data+matched_queries,200,1,DPart,13,3,100.122,0.567595,100.122188,0.567367,0.9624,0.010392,1.781467,0.057561
+Alg4,mix (50% range),load,skewed_data+matched_queries,2e+03,1,DPart,13,3,11.008,0.011358,10.279381,0.018052,1.0,0.0,1.425467,0.009209
+Alg4,mix (50% range),load,skewed_data+matched_queries,3e+03,1,DPart,13,3,8.341333,0.03147,6.773626,0.092238,1.0,0.0,1.2628,0.008575
+Alg4,mix (50% range),load,skewed_data+matched_queries,400,1,DPart,13,3,51.808,0.178126,51.807728,0.177764,0.9906,0.005356,1.7061,0.033302
+Alg4,mix (50% range),load,skewed_data+matched_queries,50,1,DPart,13,3,297.007333,5.229549,297.007493,5.229654,0.7051,0.020372,1.858067,0.140779
+Alg4,mix (50% range),load,skewed_data+matched_queries,700,1,DPart,13,3,29.759667,0.047427,29.759752,0.047546,0.999133,0.001501,1.7141,0.026711
+Alg4,mix (50% range),load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.926667,0.010599,13.926634,0.010818,1.0,0.0,1.057467,0.01276
+Alg4,mix (50% range),load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,207.538667,2.389034,207.538761,2.389009,0.988033,0.0053,1.0972,0.045386
+Alg4,mix (50% range),load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,21.017667,0.038083,21.017519,0.038165,1.0,0.0,1.062767,0.006018
+Alg4,mix (50% range),load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,104.801667,0.443942,104.801816,0.444145,1.0,0.0,1.078,0.0386
+Alg4,mix (50% range),load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.441333,0.041968,10.44108,0.042244,1.0,0.0,1.056833,0.00846
+Alg4,mix (50% range),load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,7.547333,0.024947,6.888302,0.030869,1.0,0.0,1.035533,0.004818
+Alg4,mix (50% range),load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13,3,52.678,0.279136,52.677733,0.279099,1.0,0.0,1.0736,0.025272
+Alg4,mix (50% range),load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,383.467333,2.98585,383.467436,2.985942,0.917967,0.006766,1.194,0.020295
+Alg4,mix (50% range),load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,29.997,0.11985,29.997315,0.119851,1.0,0.0,1.057233,0.001124
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13,3,11.625667,0.598291,11.011508,0.179772,0.7769,0.0154,4.705567,1.016283
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,100,1,DPart,13/14,3,73.92,8.474916,73.920168,8.474595,0.330333,0.026652,9.081333,0.940835
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,15.658333,0.316053,15.251434,0.39374,0.715367,0.019325,5.3302,1.472714
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,200,1,DPart,13,3,44.907,2.883332,44.906796,2.883354,0.411967,0.025666,8.455533,1.244238
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.429333,0.838579,8.519375,0.061956,0.804267,0.001443,4.266733,0.731819
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,7.161,0.667811,6.049241,0.132957,0.865833,0.017049,3.768433,0.391337
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,400,1,DPart,13,3,29.795667,1.396922,29.795353,1.396982,0.550433,0.023798,7.452667,1.367737
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,50,1,DPart,13,3,100.023333,6.981983,100.023392,6.981859,0.225667,0.01355,9.103567,1.183503
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,700,1,DPart,13,3,20.129,0.409092,19.970611,0.610846,0.652967,0.022111,5.9511,1.347077
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.973667,0.043097,13.973497,0.043141,1.0,0.0,1.116767,0.010179
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13/14,3,210.564667,10.839282,210.564581,10.839211,0.9799,0.003219,1.222,0.049913
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,21.014333,0.023094,21.01454,0.022998,1.0,0.0,1.114333,0.039159
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,104.402667,0.194536,104.402635,0.194512,0.998267,0.001501,1.181367,0.023
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.444333,0.019399,10.444267,0.019564,1.0,0.0,1.107667,0.009623
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,6.948333,0.002309,6.948614,0.002234,1.0,0.0,1.094667,0.014167
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.529333,0.069472,52.528999,0.06957,1.0,0.0,1.1631,0.033844
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13,3,384.774,8.410864,384.774194,8.410477,0.919667,0.010364,1.2601,0.107387
+Alg4,mix (50% range),load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,29.919,0.05011,29.919145,0.049898,1.0,0.0,1.1389,0.04882
+Alg4,mix (50% range),load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,22.821333,0.16017,16.807271,0.156082,0.981933,0.004315,4.1969,0.028979
+Alg4,mix (50% range),load,uniform_data+skewed_queries,100,1,DPart,16,3,143.065,3.88491,143.064924,3.884938,0.545167,0.007893,8.414367,0.093874
+Alg4,mix (50% range),load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,30.027,0.09219,24.731926,0.180687,0.959033,0.003164,5.295167,0.070298
+Alg4,mix (50% range),load,uniform_data+skewed_queries,200,1,DPart,16,3,92.540333,1.346741,92.540163,1.34658,0.7104,0.0104,7.876667,0.19438
+Alg4,mix (50% range),load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,18.952,0.129742,12.676581,0.037475,0.991,0.001212,3.5053,0.018014
+Alg4,mix (50% range),load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,14.74,0.120466,8.457659,0.024473,0.995833,0.00205,2.736133,0.00575
+Alg4,mix (50% range),load,uniform_data+skewed_queries,400,1,DPart,16,3,56.603,0.459503,55.765688,0.549501,0.858367,0.009096,7.180867,0.078497
+Alg4,mix (50% range),load,uniform_data+skewed_queries,50,1,DPart,16,3,199.546333,3.683435,199.545991,3.683512,0.3757,0.00937,8.957,0.181276
+Alg4,mix (50% range),load,uniform_data+skewed_queries,700,1,DPart,16,3,38.493667,0.222442,34.261496,0.250443,0.934033,0.002367,6.1459,0.035156
+Alg4,mix (50% range),load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.097667,0.052624,17.097647,0.05294,1.0,0.0,1.075533,0.017459
+Alg4,mix (50% range),load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,249.437333,2.119521,249.437251,2.119752,0.975667,0.005232,1.180867,0.035793
+Alg4,mix (50% range),load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.616333,0.107398,25.616309,0.107136,1.0,0.0,1.085133,0.013836
+Alg4,mix (50% range),load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,127.823333,0.426395,127.82342,0.426687,0.9993,0.001212,1.140833,0.042273
+Alg4,mix (50% range),load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.763667,0.025007,12.763692,0.025204,1.0,0.0,1.068067,0.004077
+Alg4,mix (50% range),load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.437333,0.021385,8.437086,0.021536,1.0,0.0,1.0507,0.004158
+Alg4,mix (50% range),load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.189667,0.222929,64.189965,0.222826,1.0,0.0,1.114467,0.048457
+Alg4,mix (50% range),load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,463.433667,2.37295,463.433831,2.373112,0.9076,0.001212,1.1919,0.063902
+Alg4,mix (50% range),load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,36.659,0.094979,36.658876,0.095207,1.0,0.0,1.090033,0.029936
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.0315,0.050205,17.028898,0.050061,1.0,0.0,1.12085,0.017183
+Alg4,mix (50% range),load,uniform_data+uniform_queries,100,1,DPart,16,3,203.898,1.291119,203.897727,1.29125,0.785433,0.00625,1.422233,0.099685
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.908,0.0,25.907653,0.0,1.0,0.0,1.1457,0.0
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.074,0.0,17.073781,0.0,1.0,0.0,1.1528,0.0
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.6615,0.079903,25.66161,0.079569,0.99895,0.001485,1.12755,0.001626
+Alg4,mix (50% range),load,uniform_data+uniform_queries,200,1,DPart,16,3,119.392,0.78803,119.391996,0.788382,0.9243,0.002425,1.264733,0.040732
+Alg4,mix (50% range),load,uniform_data+uniform_queries,2000,1,DPart,16,1,12.705,0.0,12.702088,0.0,1.0,0.0,1.114,0.0
+Alg4,mix (50% range),load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.6855,0.068589,12.680011,0.072166,1.0,0.0,1.1033,0.008485
+Alg4,mix (50% range),load,uniform_data+uniform_queries,3000,1,DPart,16,1,8.679,0.0,8.373995,0.0,1.0,0.0,1.0765,0.0
+Alg4,mix (50% range),load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,8.7315,0.033234,8.412713,0.018327,1.0,0.0,1.0777,0.005374
+Alg4,mix (50% range),load,uniform_data+uniform_queries,400,1,DPart,16,3,63.007,0.328227,63.00721,0.328122,0.980533,0.005232,1.1678,0.015243
+Alg4,mix (50% range),load,uniform_data+uniform_queries,50,1,DPart,16,3,309.695333,6.343218,309.695266,6.342937,0.593033,0.008687,1.769433,0.144042
+Alg4,mix (50% range),load,uniform_data+uniform_queries,700,1,DPart,16,3,36.467,0.29907,36.466908,0.299539,0.995833,0.00415,1.138367,0.020951
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,16.986667,0.104711,16.986882,0.104428,1.0,0.0,1.0457,0.0007
+Alg4,mix (50% range),load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,248.736333,2.117223,248.736429,2.116944,0.974267,0.006004,1.128,0.037514
+Alg4,mix (50% range),load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.545,0.067089,25.545125,0.067327,1.0,0.0,1.042867,0.004623
+Alg4,mix (50% range),load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,128.268333,0.355854,128.268345,0.355517,0.9979,0.0021,1.1108,0.012039
+Alg4,mix (50% range),load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.739,0.067134,12.739195,0.06717,1.0,0.0,1.042667,0.007862
+Alg4,mix (50% range),load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,8.523667,0.021502,8.411858,0.019033,1.0,0.0,1.034133,0.005327
+Alg4,mix (50% range),load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.089333,0.134894,64.089202,0.135159,1.0,0.0,1.0695,0.022015
+Alg4,mix (50% range),load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,461.759667,7.457398,461.759506,7.457518,0.905567,0.007893,1.194367,0.081049
+Alg4,mix (50% range),load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.572,0.114896,36.571668,0.114726,1.0,0.0,1.052467,0.010427
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,0,DPart,13,3,13.583,0.194548,10.157482,0.020478,0.9761,0.005356,2.4571,0.024779
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,0.5,DPart,13,3,11.428667,0.151243,10.325564,0.046004,1.0,0.0,1.6659,0.036831
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,1,DPart,13,3,11.005333,0.04572,10.311877,0.069458,1.0,0.0,1.429767,0.005132
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,1.5,DPart,13,3,16.064,0.159258,10.182639,0.124393,0.9957,0.002944,2.254833,0.025408
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,2,DPart,13,3,19.503333,0.601965,8.892162,0.315719,0.857267,0.024412,3.3302,0.012471
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,0,DPart eps=0 (random),13,3,10.426,0.030512,10.425762,0.030503,1.0,0.0,1.058633,0.012634
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.425,0.022068,10.425007,0.021846,1.0,0.0,1.052867,0.012658
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.381333,0.012741,10.378749,0.013323,1.0,0.0,1.055633,0.008401
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,1.5,DPart eps=0 (random),13,3,10.397667,0.006807,10.397837,0.006761,1.0,0.0,1.058633,0.009729
+Alg4,mix (50% range),skew,skewed_data+matched_queries,2e+03,2,DPart eps=0 (random),13,3,10.424,0.001,10.423888,0.001088,1.0,0.0,1.0668,0.018498
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0,DPart,13,3,13.574667,0.086031,10.137566,0.065507,0.9735,0.005356,2.4652,0.010035
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0.5,DPart,13,3,13.263,1.476294,9.763778,0.115892,0.9333,0.013337,3.106233,0.204119
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.834667,0.886523,8.336287,0.110794,0.793167,0.014147,4.7086,0.763823
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1.5,DPart,13,3,5.646667,0.229731,5.596817,0.273138,0.519633,0.024892,8.115767,1.447496
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,2,DPart,13,3,2.877667,0.056801,2.87776,0.05658,0.261533,0.006766,10.193,0.198038
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0,DPart eps=0 (random),13,3,10.428,0.029715,10.427937,0.029919,1.0,0.0,1.0583,0.012024
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.411667,0.050213,10.41173,0.050155,1.0,0.0,1.064967,0.008658
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.447,0.033,10.446862,0.032793,1.0,0.0,1.107267,0.007204
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,1.5,DPart eps=0 (random),13,3,10.489333,0.03774,10.489323,0.037977,1.0,0.0,1.159767,0.018636
+Alg4,mix (50% range),skew,skewed_data+mismatched_queries,2e+03,2,DPart eps=0 (random),13,3,10.476667,0.033005,10.476826,0.032892,1.0,0.0,1.247233,0.075826
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0,DPart,16,3,12.770667,0.009292,12.767644,0.01112,1.0,0.0,1.106167,0.014801
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0.5,DPart,16,3,14.138,0.010392,12.685507,0.0235,1.0,0.0,2.0093,0.023059
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1,DPart,16,3,18.928667,0.127422,12.647728,0.049819,0.9889,0.003208,3.5065,0.015609
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1.5,DPart,16,3,17.624,0.213871,10.727716,0.140078,0.8278,0.011466,6.9613,0.022456
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,2,DPart,16,3,8.01,0.095598,5.913763,0.042065,0.447233,0.006694,11.705333,0.013757
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0,DPart eps=0 (random),16,3,12.770667,0.026839,12.770772,0.027129,1.0,0.0,1.0416,0.007536
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.703333,0.054123,12.703554,0.05404,1.0,0.0,1.0559,0.011657
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.768667,0.011846,12.768529,0.011886,1.0,0.0,1.0677,0.004045
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.807333,0.044636,12.807665,0.044793,1.0,0.0,1.1213,0.007696
+Alg4,mix (50% range),skew,uniform_data+skewed_queries,2e+03,2,DPart eps=0 (random),16,3,12.819,0.042297,12.818786,0.042151,1.0,0.0,1.179367,0.054398
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2000,0,DPart,16,1,12.785,0.0,12.78269,0.0,1.0,0.0,1.116,0.0
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2000,0.5,DPart,16,1,12.776,0.0,12.773389,0.0,1.0,0.0,1.1206,0.0
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2000,1,DPart,16,1,12.761,0.0,12.7588,0.0,1.0,0.0,1.1195,0.0
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2000,1.5,DPart,16,1,12.723,0.0,12.721814,0.0,1.0,0.0,1.119,0.0
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2000,2,DPart,16,1,12.772,0.0,12.769407,0.0,1.0,0.0,1.1186,0.0
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0,DPart,16,2,12.7595,0.030406,12.754854,0.026213,1.0,0.0,1.10375,0.010677
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0.5,DPart,16,2,12.741,0.043841,12.735747,0.047601,1.0,0.0,1.0989,0.011172
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.745,0.012728,12.740948,0.014012,1.0,0.0,1.10395,0.010819
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1.5,DPart,16,2,12.734,0.019799,12.728414,0.016781,1.0,0.0,1.1046,0.007495
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,2,DPart,16,2,12.7195,0.078489,12.71482,0.079074,1.0,0.0,1.0978,0.011597
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0,DPart eps=0 (random),16,3,12.744333,0.027319,12.744283,0.027289,1.0,0.0,1.042367,0.007044
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.726333,0.040204,12.726291,0.040394,1.0,0.0,1.0421,0.007902
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.693333,0.022811,12.693369,0.023074,1.0,0.0,1.041967,0.007855
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.712,0.035539,12.711791,0.03565,1.0,0.0,1.041567,0.007423
+Alg4,mix (50% range),skew,uniform_data+uniform_queries,2e+03,2,DPart eps=0 (random),16,3,12.722,0.041,12.721901,0.04083,1.0,0.0,1.041567,0.007858
+Alg4,point-only,load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,13.932,0.071,13.932052,0.070958,1.0,0.0,2.230533,0.010636
+Alg4,point-only,load,skewed_data+matched_queries,100,1,DPart,13,3,186.332,0.95257,186.332252,0.952644,0.891433,0.001501,2.1975,0.038982
+Alg4,point-only,load,skewed_data+matched_queries,1e+03,1,DPart,13,3,20.875,0.166232,20.874813,0.166109,1.0,0.0,2.211933,0.013693
+Alg4,point-only,load,skewed_data+matched_queries,200,1,DPart,13,3,103.019333,1.47077,103.019445,1.471125,0.9761,0.008244,2.287433,0.044419
+Alg4,point-only,load,skewed_data+matched_queries,2e+03,1,DPart,13,3,10.329667,0.075408,10.329711,0.075268,1.0,0.0,2.211033,0.003172
+Alg4,point-only,load,skewed_data+matched_queries,3e+03,1,DPart,13,3,7.165333,0.019502,6.855137,0.018755,1.0,0.0,2.079267,0.003252
+Alg4,point-only,load,skewed_data+matched_queries,400,1,DPart,13/14,3,52.668,0.48691,52.668043,0.486571,0.976,0.035113,2.272567,0.118696
+Alg4,point-only,load,skewed_data+matched_queries,50,1,DPart,13,3,313.124333,2.02371,313.124503,2.023735,0.740167,0.007834,1.984167,0.063518
+Alg4,point-only,load,skewed_data+matched_queries,700,1,DPart,13,3,30.190667,0.071445,30.190617,0.071398,1.0,0.0,2.1917,0.016865
+Alg4,point-only,load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.912333,0.054354,13.912539,0.054485,1.0,0.0,1.0804,0.022805
+Alg4,point-only,load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,192.588333,0.961271,192.58824,0.961388,0.911133,0.003917,1.167933,0.053211
+Alg4,point-only,load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,20.903,0.056719,20.903165,0.056503,1.0,0.0,1.0915,0.02569
+Alg4,point-only,load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,104.183333,0.992996,104.183317,0.992915,0.9812,0.002944,1.114467,0.01649
+Alg4,point-only,load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,10.508333,0.067002,10.508282,0.066867,1.0,0.0,1.0667,0.014476
+Alg4,point-only,load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,6.961,0.028931,6.960967,0.02885,1.0,0.0,1.055533,0.009621
+Alg4,point-only,load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13/14,3,54.387333,2.220077,54.387493,2.22033,0.9984,0.002771,1.086233,0.024311
+Alg4,point-only,load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,324.841333,5.240508,324.84134,5.240424,0.766667,0.00515,1.25,0.0686
+Alg4,point-only,load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,30.309667,0.096862,30.309861,0.096988,1.0,0.0,1.0826,0.019503
+Alg4,point-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13/14,3,11.952,0.388648,11.704408,0.402999,0.817933,0.020976,7.0601,1.390182
+Alg4,point-only,load,skewed_data+mismatched_queries,100,1,DPart,13,3,80.043667,6.663788,80.043904,6.663838,0.369233,0.029152,9.553167,0.785004
+Alg4,point-only,load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,16.147,0.273589,16.146781,0.273554,0.757233,0.003917,6.930233,1.060686
+Alg4,point-only,load,skewed_data+mismatched_queries,200,1,DPart,13,3,52.748333,2.23323,52.748126,2.23344,0.486333,0.023814,8.4293,0.935652
+Alg4,point-only,load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,9.379333,0.336299,9.034068,0.116563,0.8581,0.009694,6.4074,1.297023
+Alg4,point-only,load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,6.981,0.068564,6.307481,0.019462,0.903433,0.00649,6.6021,0.103538
+Alg4,point-only,load,skewed_data+mismatched_queries,400,1,DPart,13,3,33.39,1.474887,33.389961,1.47468,0.619667,0.025666,8.642767,1.09762
+Alg4,point-only,load,skewed_data+mismatched_queries,50,1,DPart,13,3,126.124,3.131046,126.123777,3.131206,0.2846,0.0051,9.032233,0.183906
+Alg4,point-only,load,skewed_data+mismatched_queries,700,1,DPart,13,3,22.073667,0.259731,22.073519,0.25977,0.721367,0.012888,6.6676,0.025915
+Alg4,point-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13/14,3,14.253,0.614234,14.253167,0.614457,1.0,0.0,1.138333,0.018877
+Alg4,point-only,load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13,3,192.316667,1.358305,192.316672,1.358219,0.908567,0.006444,1.329267,0.15494
+Alg4,point-only,load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,20.976333,0.062292,20.97638,0.061828,1.0,0.0,1.1405,0.030177
+Alg4,point-only,load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,103.662,0.207029,103.662231,0.207073,0.982933,0.003917,1.293467,0.11338
+Alg4,point-only,load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.505333,0.042004,10.505531,0.042007,1.0,0.0,1.1193,0.025675
+Alg4,point-only,load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,6.944667,0.025736,6.94449,0.025921,1.0,0.0,1.105,0.006963
+Alg4,point-only,load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.986667,0.236441,52.986649,0.236549,0.999133,0.001501,1.244033,0.062529
+Alg4,point-only,load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13,3,322.552,4.509348,322.551931,4.509593,0.758133,0.009031,1.397967,0.140797
+Alg4,point-only,load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,30.248667,0.110546,30.248704,0.110548,1.0,0.0,1.170167,0.044612
+Alg4,point-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,18.082,0.062865,17.045275,0.055448,0.994433,0.002367,6.389333,0.02535
+Alg4,point-only,load,uniform_data+skewed_queries,100,1,DPart,16,3,164.388333,3.935524,164.388302,3.935937,0.629167,0.013664,8.4762,0.1376
+Alg4,point-only,load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,25.312333,0.269393,25.289621,0.283071,0.980533,0.005232,6.966667,0.036175
+Alg4,point-only,load,uniform_data+skewed_queries,200,1,DPart,16,3,104.11,0.726094,104.110011,0.726122,0.7958,0.0021,8.2719,0.099384
+Alg4,point-only,load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,14.096667,0.053426,12.833553,0.01687,0.9965,0.001212,5.875567,0.012716
+Alg4,point-only,load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,10.016,0.041388,8.566872,0.008095,0.9993,0.001212,5.071733,0.000981
+Alg4,point-only,load,uniform_data+skewed_queries,400,1,DPart,16,3,59.024667,0.36229,59.024761,0.362115,0.906233,0.005499,7.890667,0.055068
+Alg4,point-only,load,uniform_data+skewed_queries,50,1,DPart,16,3,240.657667,4.702802,240.657705,4.702718,0.456933,0.007328,8.540033,0.097807
+Alg4,point-only,load,uniform_data+skewed_queries,700,1,DPart,16,3,35.817333,0.133665,35.817333,0.133461,0.9611,0.003208,7.437267,0.055431
+Alg4,point-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.091667,0.059752,17.091335,0.059651,1.0,0.0,1.099367,0.02831
+Alg4,point-only,load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,222.842,1.485365,222.842153,1.485505,0.8632,0.001212,1.2403,0.031179
+Alg4,point-only,load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.641333,0.054921,25.641033,0.054955,1.0,0.0,1.101933,0.038744
+Alg4,point-only,load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,124.576667,1.094095,124.576506,1.09384,0.959767,0.006004,1.166367,0.054528
+Alg4,point-only,load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.818333,0.019604,12.818268,0.019489,1.0,0.0,1.0935,0.032428
+Alg4,point-only,load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.548,0.045924,8.548338,0.046001,1.0,0.0,1.079067,0.015611
+Alg4,point-only,load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.689667,0.221272,64.689441,0.221098,0.993733,0.00358,1.135033,0.040079
+Alg4,point-only,load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,368.904,10.03991,368.904003,10.040227,0.703467,0.017747,1.297767,0.056079
+Alg4,point-only,load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,37.068667,0.131895,37.06856,0.13181,0.9993,0.001212,1.1107,0.030012
+Alg4,point-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.0475,0.023335,17.047741,0.023413,1.0,0.0,1.09495,0.015203
+Alg4,point-only,load,uniform_data+uniform_queries,100,1,DPart,16,3,226.301,1.721457,226.301055,1.721615,0.872933,0.005499,1.275567,0.010661
+Alg4,point-only,load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.946,0.0,25.945946,0.0,1.0,0.0,1.1026,0.0
+Alg4,point-only,load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.06,0.0,17.059559,0.0,1.0,0.0,1.0821,0.0
+Alg4,point-only,load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.646,0.200818,25.646198,0.200591,1.0,0.0,1.08715,0.008839
+Alg4,point-only,load,uniform_data+uniform_queries,200,1,DPart,16,3,125.294667,0.721737,125.294425,0.721702,0.965267,0.008429,1.2277,0.013623
+Alg4,point-only,load,uniform_data+uniform_queries,2000,1,DPart,16,1,12.899,0.0,12.899433,0.0,1.0,0.0,1.0699,0.0
+Alg4,point-only,load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,12.8265,0.026163,12.82675,0.026509,1.0,0.0,1.08325,0.018597
+Alg4,point-only,load,uniform_data+uniform_queries,3000,1,DPart,16,1,8.533,0.0,8.533333,0.0,1.0,0.0,1.0825,0.0
+Alg4,point-only,load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,8.5285,0.002121,8.528596,0.002511,1.0,0.0,1.0609,0.001414
+Alg4,point-only,load,uniform_data+uniform_queries,400,1,DPart,16,3,64.655333,0.135677,64.654997,0.135829,0.993767,0.00358,1.139433,0.019692
+Alg4,point-only,load,uniform_data+uniform_queries,50,1,DPart,16,3,362.070667,3.187345,362.070584,3.187277,0.6875,0.0021,1.245533,0.020166
+Alg4,point-only,load,uniform_data+uniform_queries,700,1,DPart,16,3,37.29,0.232979,37.290068,0.232865,1.0,0.0,1.095,0.016093
+Alg4,point-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.113667,0.028308,17.113443,0.028207,1.0,0.0,1.063333,0.00388
+Alg4,point-only,load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,229.596,2.936049,229.596079,2.936128,0.881267,0.007516,1.2101,0.055824
+Alg4,point-only,load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.733,0.199181,25.73326,0.199313,1.0,0.0,1.069633,0.017638
+Alg4,point-only,load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,126.012,0.788135,126.012329,0.788102,0.9674,0.002425,1.129733,0.007638
+Alg4,point-only,load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,12.859667,0.042336,12.859479,0.042631,1.0,0.0,1.0553,0.022919
+Alg4,point-only,load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,8.551333,0.012662,8.551161,0.012586,1.0,0.0,1.047267,0.009521
+Alg4,point-only,load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.835667,0.242558,64.835695,0.242305,0.9972,0.001212,1.0881,0.016025
+Alg4,point-only,load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,366.917,7.602769,366.916854,7.602746,0.707633,0.012067,1.293633,0.102893
+Alg4,point-only,load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.964667,0.226677,36.964736,0.227165,1.0,0.0,1.081033,0.031355
+Alg4,range-only,load,skewed_data+matched_queries,1.5e+03,1,DPart,13,3,15.910333,0.084583,13.72892,0.107536,0.999133,0.001501,1.3746,0.011105
+Alg4,range-only,load,skewed_data+matched_queries,100,1,DPart,13,3,165.451667,2.305625,165.451814,2.305522,0.777767,0.012653,1.802667,0.028067
+Alg4,range-only,load,skewed_data+matched_queries,1e+03,1,DPart,13,3,21.389667,0.120268,20.607754,0.189591,0.996567,0.005947,1.615133,0.009042
+Alg4,range-only,load,skewed_data+matched_queries,200,1,DPart,13,3,94.710333,1.076342,94.710456,1.076206,0.897433,0.015585,1.736067,0.030409
+Alg4,range-only,load,skewed_data+matched_queries,2e+03,1,DPart,13,3,13.192,0.175579,10.306701,0.040134,1.0,0.0,1.271567,0.016796
+Alg4,range-only,load,skewed_data+matched_queries,3e+03,1,DPart,13,3,10.816667,0.104352,6.753692,0.037804,1.0,0.0,1.207267,0.007193
+Alg4,range-only,load,skewed_data+matched_queries,400,1,DPart,13,3,51.047667,0.534031,51.047977,0.534127,0.974367,0.01025,1.7428,0.030376
+Alg4,range-only,load,skewed_data+matched_queries,50,1,DPart,13,3,248.649667,7.78949,248.649559,7.789561,0.5829,0.024633,1.5734,0.029174
+Alg4,range-only,load,skewed_data+matched_queries,700,1,DPart,13,3,29.490667,0.205137,29.467427,0.226083,0.9906,0.005356,1.71,0.020315
+Alg4,range-only,load,skewed_data+matched_queries,1.5e+03,1,DPart eps=0 (random),13,3,14.166667,0.040067,13.887925,0.028978,1.0,0.0,1.041233,0.004234
+Alg4,range-only,load,skewed_data+matched_queries,100,1,DPart eps=0 (random),13,3,209.866333,1.119639,209.866348,1.119676,0.999133,0.001501,1.0972,0.031438
+Alg4,range-only,load,skewed_data+matched_queries,1e+03,1,DPart eps=0 (random),13,3,20.918,0.040262,20.917713,0.04019,1.0,0.0,1.048667,0.009642
+Alg4,range-only,load,skewed_data+matched_queries,200,1,DPart eps=0 (random),13,3,105.282,0.632581,105.281967,0.632805,1.0,0.0,1.073933,0.026581
+Alg4,range-only,load,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,12.062,0.042568,10.378789,0.028085,1.0,0.0,1.036933,0.005652
+Alg4,range-only,load,skewed_data+matched_queries,3e+03,1,DPart eps=0 (random),13,3,10.522667,0.007767,6.867564,0.02136,1.0,0.0,1.031167,0.005001
+Alg4,range-only,load,skewed_data+matched_queries,400,1,DPart eps=0 (random),13,3,52.612,0.064086,52.612032,0.064072,1.0,0.0,1.057033,0.020429
+Alg4,range-only,load,skewed_data+matched_queries,50,1,DPart eps=0 (random),13,3,408.609333,1.985629,408.609116,1.985613,0.9795,0.0077,1.122233,0.036503
+Alg4,range-only,load,skewed_data+matched_queries,700,1,DPart eps=0 (random),13,3,29.946,0.03923,29.946045,0.03918,1.0,0.0,1.0515,0.007515
+Alg4,range-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart,13,3,11.993,0.98246,10.172031,0.223461,0.719667,0.015007,4.4097,0.465178
+Alg4,range-only,load,skewed_data+mismatched_queries,100,1,DPart,13,3,54.057,6.676051,54.057169,6.67573,0.245333,0.030583,8.478833,1.247835
+Alg4,range-only,load,skewed_data+mismatched_queries,1e+03,1,DPart,13,3,14.604667,0.830299,13.919519,0.05702,0.648733,0.004446,4.561133,0.871367
+Alg4,range-only,load,skewed_data+mismatched_queries,200,1,DPart,13,3,37.598,3.126872,37.598245,3.126669,0.3436,0.031066,7.308333,1.07004
+Alg4,range-only,load,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,10.105667,0.977611,8.092574,0.114866,0.768367,0.007834,3.901833,0.343048
+Alg4,range-only,load,skewed_data+mismatched_queries,3e+03,1,DPart,13,3,7.266667,0.832445,5.806642,0.055762,0.8265,0.009694,3.1628,0.156473
+Alg4,range-only,load,skewed_data+mismatched_queries,400,1,DPart,13,3,24.912667,2.058854,24.596782,2.324573,0.451267,0.043153,7.053933,1.285602
+Alg4,range-only,load,skewed_data+mismatched_queries,50,1,DPart,13/14,3,84.974333,15.973989,84.974097,15.974166,0.1871,0.02887,9.543533,1.106975
+Alg4,range-only,load,skewed_data+mismatched_queries,700,1,DPart,13,3,18.225333,0.065432,18.176822,0.095256,0.588867,0.003917,4.3965,0.1077
+Alg4,range-only,load,skewed_data+mismatched_queries,1.5e+03,1,DPart eps=0 (random),13,3,13.976,0.045826,13.976117,0.045945,1.0,0.0,1.0691,0.01601
+Alg4,range-only,load,skewed_data+mismatched_queries,100,1,DPart eps=0 (random),13,3,209.722,1.562228,209.722402,1.562244,0.999133,0.001501,1.224667,0.081251
+Alg4,range-only,load,skewed_data+mismatched_queries,1e+03,1,DPart eps=0 (random),13,3,21.100333,0.043822,21.100449,0.043945,1.0,0.0,1.074533,0.019074
+Alg4,range-only,load,skewed_data+mismatched_queries,200,1,DPart eps=0 (random),13,3,105.690333,0.614306,105.690461,0.614203,1.0,0.0,1.1621,0.056858
+Alg4,range-only,load,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.434,0.04857,10.434205,0.04832,1.0,0.0,1.0743,0.01126
+Alg4,range-only,load,skewed_data+mismatched_queries,3e+03,1,DPart eps=0 (random),13,3,6.924,0.035086,6.923838,0.035354,1.0,0.0,1.067333,0.009582
+Alg4,range-only,load,skewed_data+mismatched_queries,400,1,DPart eps=0 (random),13,3,52.91,0.148162,52.909657,0.148167,1.0,0.0,1.121033,0.039822
+Alg4,range-only,load,skewed_data+mismatched_queries,50,1,DPart eps=0 (random),13/14,3,411.291,13.623761,411.291205,13.623918,0.970867,0.00535,1.247467,0.091637
+Alg4,range-only,load,skewed_data+mismatched_queries,700,1,DPart eps=0 (random),13,3,29.809667,0.144254,29.809385,0.144495,1.0,0.0,1.082833,0.024724
+Alg4,range-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart,16,3,26.651,0.105532,16.394466,0.112121,0.956233,0.005499,3.037167,0.014928
+Alg4,range-only,load,uniform_data+skewed_queries,100,1,DPart,16,3,107.262,2.843213,107.261952,2.842897,0.4007,0.012733,7.864967,0.203789
+Alg4,range-only,load,uniform_data+skewed_queries,1e+03,1,DPart,16,3,33.531667,0.130063,23.788618,0.223965,0.920167,0.007893,3.934133,0.026372
+Alg4,range-only,load,uniform_data+skewed_queries,200,1,DPart,16,3,76.421,1.970891,76.33732,1.886965,0.5771,0.011594,7.4891,0.122112
+Alg4,range-only,load,uniform_data+skewed_queries,2e+03,1,DPart,16,3,22.781333,0.137845,12.590862,0.056766,0.982633,0.005232,2.5338,0.016552
+Alg4,range-only,load,uniform_data+skewed_queries,3e+03,1,DPart,16,3,17.617667,0.127884,8.412078,0.026938,0.992367,0.003153,1.982467,0.007514
+Alg4,range-only,load,uniform_data+skewed_queries,400,1,DPart,16,3,55.425667,0.428581,49.839983,0.542154,0.763167,0.007323,6.084333,0.035367
+Alg4,range-only,load,uniform_data+skewed_queries,50,1,DPart,16,3,156.600333,5.783442,156.600298,5.783464,0.2924,0.01465,7.494467,0.220149
+Alg4,range-only,load,uniform_data+skewed_queries,700,1,DPart,16,3,40.707667,0.267631,31.877991,0.098333,0.8604,0.0,4.845467,0.059319
+Alg4,range-only,load,uniform_data+skewed_queries,1.5e+03,1,DPart eps=0 (random),16,3,17.040333,0.031086,17.04067,0.030933,1.0,0.0,1.069867,0.004007
+Alg4,range-only,load,uniform_data+skewed_queries,100,1,DPart eps=0 (random),16,3,255.826667,1.114173,255.826319,1.114181,0.9979,0.0021,1.1322,0.044427
+Alg4,range-only,load,uniform_data+skewed_queries,1e+03,1,DPart eps=0 (random),16,3,25.635333,0.029535,25.635628,0.029452,1.0,0.0,1.077367,0.011015
+Alg4,range-only,load,uniform_data+skewed_queries,200,1,DPart eps=0 (random),16,3,129.076,0.271,129.07601,0.271169,1.0,0.0,1.1088,0.02815
+Alg4,range-only,load,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.702667,0.036556,12.702594,0.036151,1.0,0.0,1.0552,0.005469
+Alg4,range-only,load,uniform_data+skewed_queries,3e+03,1,DPart eps=0 (random),16,3,8.411333,0.003215,8.411254,0.003047,1.0,0.0,1.048167,0.011954
+Alg4,range-only,load,uniform_data+skewed_queries,400,1,DPart eps=0 (random),16,3,64.447667,0.103326,64.447663,0.103213,1.0,0.0,1.094467,0.02358
+Alg4,range-only,load,uniform_data+skewed_queries,50,1,DPart eps=0 (random),16,3,492.976,6.268517,492.975946,6.268549,0.970833,0.00835,1.167533,0.028131
+Alg4,range-only,load,uniform_data+skewed_queries,700,1,DPart eps=0 (random),16,3,36.713667,0.143001,36.713844,0.1426,1.0,0.0,1.0827,0.013881
+Alg4,range-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart,16,2,17.1045,0.030406,16.941582,0.013071,0.99685,0.001485,1.09535,0.018738
+Alg4,range-only,load,uniform_data+uniform_queries,100,1,DPart,16,3,168.084,2.860637,168.084134,2.860972,0.6333,0.011594,1.4384,0.036596
+Alg4,range-only,load,uniform_data+uniform_queries,1000,1,DPart,16,1,25.43,0.0,25.430112,0.0,0.9979,0.0,1.1141,0.0
+Alg4,range-only,load,uniform_data+uniform_queries,1500,1,DPart,16,1,17.203,0.0,17.017034,0.0,1.0,0.0,1.0911,0.0
+Alg4,range-only,load,uniform_data+uniform_queries,1e+03,1,DPart,16,2,25.459,0.199404,25.458755,0.199751,0.9927,0.004384,1.1175,0.015981
+Alg4,range-only,load,uniform_data+uniform_queries,200,1,DPart,16,3,107.446333,0.423158,107.446376,0.423223,0.8222,0.004371,1.2106,0.014237
+Alg4,range-only,load,uniform_data+uniform_queries,2000,1,DPart,16,1,13.539,0.0,12.732359,0.0,1.0,0.0,1.0785,0.0
+Alg4,range-only,load,uniform_data+uniform_queries,2e+03,1,DPart,16,2,13.505,0.046669,12.712749,0.061379,1.0,0.0,1.0722,0.007637
+Alg4,range-only,load,uniform_data+uniform_queries,3000,1,DPart,16,1,10.755,0.0,8.431453,0.0,1.0,0.0,1.0636,0.0
+Alg4,range-only,load,uniform_data+uniform_queries,3e+03,1,DPart,16,2,10.7675,0.026163,8.421661,0.022855,1.0,0.0,1.0529,0.003677
+Alg4,range-only,load,uniform_data+uniform_queries,400,1,DPart,16,3,60.974,0.522782,60.973876,0.522641,0.940967,0.007893,1.152967,0.018713
+Alg4,range-only,load,uniform_data+uniform_queries,50,1,DPart,16,3,223.254333,2.352413,223.254274,2.352173,0.416667,0.005518,1.324733,0.065701
+Alg4,range-only,load,uniform_data+uniform_queries,700,1,DPart,16,3,36.262,0.381016,36.261945,0.380697,0.984733,0.006372,1.133233,0.023548
+Alg4,range-only,load,uniform_data+uniform_queries,1.5e+03,1,DPart eps=0 (random),16,3,16.984333,0.043039,16.984177,0.042771,1.0,0.0,1.044033,0.003612
+Alg4,range-only,load,uniform_data+uniform_queries,100,1,DPart eps=0 (random),16,3,256.178,0.618343,256.178149,0.618095,0.997233,0.003153,1.1046,0.012511
+Alg4,range-only,load,uniform_data+uniform_queries,1e+03,1,DPart eps=0 (random),16,3,25.646333,0.024826,25.646322,0.024737,1.0,0.0,1.0456,0.003775
+Alg4,range-only,load,uniform_data+uniform_queries,200,1,DPart eps=0 (random),16,3,129.302333,0.342193,129.302603,0.342235,1.0,0.0,1.0723,0.017708
+Alg4,range-only,load,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,13.108333,0.062453,12.667436,0.070958,1.0,0.0,1.0418,0.004751
+Alg4,range-only,load,uniform_data+uniform_queries,3e+03,1,DPart eps=0 (random),16,3,10.708333,0.055221,8.418037,0.056669,1.0,0.0,1.029633,0.001159
+Alg4,range-only,load,uniform_data+uniform_queries,400,1,DPart eps=0 (random),16,3,64.335667,0.220894,64.335584,0.22071,1.0,0.0,1.055267,0.011408
+Alg4,range-only,load,uniform_data+uniform_queries,50,1,DPart eps=0 (random),16,3,493.267,2.36832,493.266989,2.368314,0.968767,0.00415,1.159267,0.051982
+Alg4,range-only,load,uniform_data+uniform_queries,700,1,DPart eps=0 (random),16,3,36.633667,0.125862,36.633501,0.126359,1.0,0.0,1.048367,0.004464
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,0,DPart,13,3,14.809,0.086238,10.10378,0.110047,0.9701,0.003928,1.9681,0.012211
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,0.5,DPart,13,3,12.975,0.069087,10.359392,0.024216,1.0,0.0,1.3977,0.012039
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,1,DPart,13,3,13.189667,0.193779,10.312994,0.012287,1.0,0.0,1.271667,0.017378
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,1.5,DPart,13,3,18.567333,0.183713,10.193924,0.06685,0.988033,0.003917,1.884267,0.016585
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,2,DPart,13,3,23.446,0.471013,8.61567,0.2719,0.8376,0.019607,2.746367,0.013973
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,0,DPart eps=0 (random),13,3,10.408667,0.027538,10.383436,0.01797,1.0,0.0,1.0614,0.009614
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,0.5,DPart eps=0 (random),13,3,11.117667,0.016042,10.368343,0.019372,1.0,0.0,1.040333,0.015003
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,1,DPart eps=0 (random),13,3,12.057667,0.031786,10.348069,0.051124,1.0,0.0,1.0378,0.005367
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,1.5,DPart eps=0 (random),13,3,11.301,0.085071,10.371918,0.011243,1.0,0.0,1.046233,0.00363
+Alg4,range-only,skew,skewed_data+matched_queries,2e+03,2,DPart eps=0 (random),13,3,10.839333,0.072803,10.397131,0.017388,1.0,0.0,1.0607,0.010876
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,0,DPart,13,3,16.333,1.216064,10.087077,0.121648,0.966667,0.006822,2.011567,0.035832
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,0.5,DPart,13,3,14.408,2.461465,9.683681,0.109949,0.923067,0.006766,2.486733,0.076528
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,1,DPart,13,3,10.282,0.776477,8.136524,0.119457,0.770967,0.010673,3.895333,0.438384
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,1.5,DPart,13/14,3,4.946333,0.086396,4.82576,0.169737,0.4374,0.02867,7.500533,1.617707
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,2,DPart,13,3,2.257,0.217,2.257131,0.216781,0.205133,0.018499,10.330333,1.018934
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,0,DPart eps=0 (random),13,3,10.419333,0.053929,10.389362,0.053592,1.0,0.0,1.0622,0.008166
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,0.5,DPart eps=0 (random),13,3,10.412333,0.021127,10.41232,0.020775,1.0,0.0,1.0634,0.007957
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,1,DPart eps=0 (random),13,3,10.404667,0.055221,10.404894,0.055404,1.0,0.0,1.073233,0.01366
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,1.5,DPart eps=0 (random),13/14,3,10.714667,0.453229,10.714478,0.453315,1.0,0.0,1.133033,0.010997
+Alg4,range-only,skew,skewed_data+mismatched_queries,2e+03,2,DPart eps=0 (random),13,3,10.502,0.022716,10.502137,0.022837,1.0,0.0,1.232667,0.035834
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,0,DPart,16,3,13.470333,0.05783,12.663896,0.062626,1.0,0.0,1.074067,0.006542
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,0.5,DPart,16,3,15.283,0.021794,12.703833,0.034194,0.9993,0.001212,1.616733,0.003912
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,1,DPart,16,3,22.768,0.176128,12.55549,0.089362,0.981933,0.006361,2.5322,0.021027
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,1.5,DPart,16,3,23.015667,0.236553,10.039168,0.085702,0.7764,0.003208,5.201733,0.024611
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,2,DPart,16,3,9.514667,0.25154,5.301055,0.08401,0.4,0.007475,10.191067,0.123754
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,0,DPart eps=0 (random),16,3,13.140333,0.062525,12.698216,0.035348,1.0,0.0,1.041567,0.004632
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,0.5,DPart eps=0 (random),16,3,12.814,0.051098,12.663363,0.045382,1.0,0.0,1.050833,0.016461
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,1,DPart eps=0 (random),16,3,12.692333,0.034675,12.692529,0.034584,1.0,0.0,1.055033,0.004506
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,1.5,DPart eps=0 (random),16,3,12.754,0.034044,12.754004,0.033801,1.0,0.0,1.091833,0.003553
+Alg4,range-only,skew,uniform_data+skewed_queries,2e+03,2,DPart eps=0 (random),16,3,12.823333,0.013429,12.823609,0.013662,1.0,0.0,1.146667,0.033921
+Alg4,range-only,skew,uniform_data+uniform_queries,2000,0,DPart,16,1,13.523,0.0,12.728403,0.0,1.0,0.0,1.0723,0.0
+Alg4,range-only,skew,uniform_data+uniform_queries,2000,0.5,DPart,16,1,13.563,0.0,12.797334,0.0,1.0,0.0,1.0752,0.0
+Alg4,range-only,skew,uniform_data+uniform_queries,2000,1,DPart,16,1,13.499,0.0,12.692904,0.0,1.0,0.0,1.0761,0.0
+Alg4,range-only,skew,uniform_data+uniform_queries,2000,1.5,DPart,16,1,13.484,0.0,12.669347,0.0,1.0,0.0,1.0741,0.0
+Alg4,range-only,skew,uniform_data+uniform_queries,2000,2,DPart,16,1,13.515,0.0,12.744244,0.0,1.0,0.0,1.0755,0.0
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,0,DPart,16,2,13.5005,0.024749,12.708,0.002788,1.0,0.0,1.07285,0.007707
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,0.5,DPart,16,2,13.484,0.005657,12.697546,0.036183,1.0,0.0,1.07035,0.007142
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,1,DPart,16,2,13.4835,0.009192,12.700129,0.015779,1.0,0.0,1.07085,0.007566
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,1.5,DPart,16,2,13.5075,0.027577,12.720498,0.005587,1.0,0.0,1.0745,0.006223
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,2,DPart,16,2,13.5055,0.020506,12.727085,0.001864,1.0,0.0,1.0696,0.004243
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,0,DPart eps=0 (random),16,3,13.127667,0.018009,12.665959,0.042244,1.0,0.0,1.041033,0.005783
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,0.5,DPart eps=0 (random),16,3,13.156333,0.053314,12.713529,0.031353,1.0,0.0,1.040933,0.005452
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,1,DPart eps=0 (random),16,3,13.135333,0.053985,12.682479,0.032369,1.0,0.0,1.041033,0.005658
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,1.5,DPart eps=0 (random),16,3,13.144667,0.055519,12.678199,0.051027,1.0,0.0,1.041867,0.004761
+Alg4,range-only,skew,uniform_data+uniform_queries,2e+03,2,DPart eps=0 (random),16,3,13.169,0.035,12.717458,0.025022,1.0,0.0,1.040767,0.006099

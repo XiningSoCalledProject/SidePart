@@ -24,6 +24,7 @@
 #include <cassert>
 
 #include "MultiRingORAM_Servers.h"
+#include "DataPath.h"
 
 // ============================================
 // CSV Reader (raw lines, skip header)
@@ -57,7 +58,7 @@ int main() {
         std::cout << "[Step 1] Load data & Repartition\n";
         std::cout << std::string(60, '-') << "\n";
 
-        std::string csv_path = "/Users/xiningyuan/Desktop/seal-oram-netio-master-copy/Testing/Unit Tests/test_data.csv";
+        std::string csv_path = departDataPath("Testing/Unit Tests/test_data.csv");
         std::vector<std::string> data = readCSV(csv_path);
         std::cout << "  Loaded " << data.size() << " records\n";
 

@@ -1,0 +1,15 @@
+--- a/src/Queries_Receiving.cpp	2026-10-08 14:00:28.996964176 -0400
++++ b/src/Queries_Receiving.cpp	2026-10-08 14:00:28.998744094 -0400
+@@ -1017,6 +1017,12 @@
+             const CachedVersion& v = ks.versions.rbegin()->second;
+             Operat op     = v.last_write;
+             op.data_value = v.value;
++            // A row created THIS epoch exists only as an INSERT version; if a
++            // later txn updated it, the merged write must still be an INSERT
++            // (executeOramOps rejects an UPDATE of an unknown row and sends an
++            // INSERT of an existing row as UPDATE, so INSERT is always safe).
++            for (const auto& [w, ver] : ks.versions)
++                if (ver.last_write.type == OpType::INSERT) { op.type = OpType::INSERT; break; }
+             const uint32_t slot = static_cast<uint32_t>(plan.oram_bound_ops.size());
+             chosen_goid_to_slot[op.global_op_id] = slot;
+             load[bucket(op.server_id)]++;

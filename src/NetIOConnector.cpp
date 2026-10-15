@@ -7,6 +7,9 @@
 #include "Config.h"
 #include <iostream>
 #include <cassert>
+#include <algorithm>
+#include <cstring>
+#include <stdexcept>
 
 using namespace std;
 
@@ -67,6 +70,13 @@ void NetIOConnector::insert_slot(
     // making N insert_slot RTTs. A subsequent bulk_init_tree() will upload
     // all slots in one go. See NetIOConnector.h for full context.
     if (silent_) return;
+    if (deferred_) {
+        std::string c = cipher;
+        c.resize(block_size, '\0');
+        d_written_[global_slot_id] = c;
+        d_writes_.emplace_back(global_slot_id, std::move(c));
+        return;
+    }
 
     int8_t code = 1;  // 操作码 1：INSERT_SLOT
     std::string oram_name_impl = oram_name.empty() ? oram_name_ : oram_name;
@@ -109,6 +119,12 @@ std::string NetIOConnector::find_slot(
     const std::string& oram_name,
     uint32_t block_size
 ) {
+    if (deferred_) {
+        auto w = d_written_.find(global_slot_id);
+        d_fetch_.emplace_back(bucket_id, global_slot_id);   // same trace either way
+        if (w != d_written_.end()) return w->second;        // read-after-write in batch
+        return make_placeholder(d_fetch_.size() - 1, block_size);
+    }
     int8_t code = 3;  // 操作码 3：FIND_SLOT
     std::string oram_name_impl = oram_name.empty() ? oram_name_ : oram_name;
 
@@ -145,6 +161,121 @@ std::string NetIOConnector::find_slot(
     #endif
 
     return encrypted_block;
+}
+
+// ========================================
+// Batched FIND_SLOT — opcode 11 (10/8/26)
+// ========================================
+// Wire:  client -> [11][name 32][count u32][block_size u32][count x (bucket u32, slot u32)]
+//        server -> [count x block_size]   (replies in request order)
+// One message per call (split at kFindWindow requests), so a call costs one
+// round trip instead of one per slot.
+//
+// Why a new opcode instead of pipelining opcode-3 requests: emp::NetIO uses a
+// single FILE* for both directions of the socket.  If several requests are
+// in flight, the listener's first fread pulls all of them into the stdio
+// buffer, and its fwrite of the first reply switches the stream to write mode
+// and discards the buffered, still-unread requests (seen on EC2: the
+// connection died on the first batched read).  With one message the listener
+// reads the whole request before it writes anything.
+std::vector<std::string> NetIOConnector::find_slots(
+    const std::vector<std::pair<uint32_t, uint32_t>>& reqs,
+    const std::string& oram_name,
+    uint32_t block_size
+) {
+    std::vector<std::string> out;
+    out.reserve(reqs.size());
+    if (reqs.empty()) return out;
+    if (deferred_) {
+        for (const auto& r : reqs) out.push_back(find_slot(r.first, r.second, oram_name, block_size));
+        return out;
+    }
+
+    std::string name_buf = oram_name.empty() ? oram_name_ : oram_name;
+    name_buf.resize(name_length_bytes, '\0');
+    const uint32_t bs_net = htonl(block_size);
+
+    std::string req_buf, rep_buf;
+    for (size_t base = 0; base < reqs.size(); base += kFindWindow) {
+        const size_t n = std::min(kFindWindow, reqs.size() - base);
+        const uint32_t n_net = htonl(static_cast<uint32_t>(n));
+        req_buf.clear();
+        req_buf.reserve(1 + name_length_bytes + 8 + 8 * n);
+        req_buf.push_back(static_cast<char>(11));          // FIND_SLOTS
+        req_buf.append(name_buf);
+        req_buf.append(reinterpret_cast<const char*>(&n_net), 4);
+        req_buf.append(reinterpret_cast<const char*>(&bs_net), 4);
+        for (size_t i = 0; i < n; ++i) {
+            const uint32_t bucket_net = htonl(reqs[base + i].first);
+            const uint32_t slot_net   = htonl(reqs[base + i].second);
+            req_buf.append(reinterpret_cast<const char*>(&bucket_net), 4);
+            req_buf.append(reinterpret_cast<const char*>(&slot_net), 4);
+        }
+        netio_->send_data(req_buf.data(), req_buf.size());
+        rep_buf.assign(n * block_size, '\0');
+        netio_->recv_data(&rep_buf[0], rep_buf.size());
+        for (size_t i = 0; i < n; ++i) out.emplace_back(rep_buf, i * block_size, block_size);
+    }
+    return out;
+}
+
+// ========================================
+// Deferred (batched) mode — 10/8/26
+// ========================================
+static const char kPlaceholderMagic[NetIOConnector::kPlaceholderMagicLen + 1] =
+    "\xF7\x1D\xA3\x5C\x08\xE2\x9B\x46\xC1\x7F\x30\xD8\x6A\x15\xBE\x92";
+
+std::string NetIOConnector::make_placeholder(uint64_t id, uint32_t block_size) {
+    std::string p(kPlaceholderMagic, kPlaceholderMagicLen);
+    p.append(reinterpret_cast<const char*>(&id), sizeof(id));
+    p.resize(std::max<size_t>(block_size, p.size()), '\0');
+    return p;
+}
+
+bool NetIOConnector::is_placeholder(const std::string& c, uint64_t* id) {
+    if (c.size() < kPlaceholderMagicLen + sizeof(uint64_t)) return false;
+    if (std::memcmp(c.data(), kPlaceholderMagic, kPlaceholderMagicLen) != 0) return false;
+    if (id) std::memcpy(id, c.data() + kPlaceholderMagicLen, sizeof(uint64_t));
+    return true;
+}
+
+void NetIOConnector::begin_deferred(const std::string& oram_name, uint32_t block_size) {
+    if (deferred_) throw std::logic_error("[NetIOConnector] begin_deferred: already deferred");
+    if (block_size < kPlaceholderMagicLen + sizeof(uint64_t))
+        throw std::invalid_argument("[NetIOConnector] begin_deferred: block_size too small");
+    deferred_ = true;
+    d_name_ = oram_name;
+    d_block_size_ = block_size;
+    d_fetch_.clear(); d_writes_.clear(); d_written_.clear();
+}
+
+std::unordered_map<uint64_t, std::string> NetIOConnector::end_deferred() {
+    if (!deferred_) throw std::logic_error("[NetIOConnector] end_deferred: not deferred");
+    deferred_ = false;
+    std::unordered_map<uint64_t, std::string> resolved;
+    // 1) ONE round trip for every slot read in the batch (split only by
+    //    kFindWindow).  Reads of slots written earlier in the batch are
+    //    fetched too, so the server sees the same set of reads; their
+    //    (stale) content is simply not used.
+    const uint32_t bs = d_block_size_;
+    if (!d_fetch_.empty()) {
+        std::vector<std::string> got = find_slots(d_fetch_, d_name_, bs);
+        for (size_t i = 0; i < got.size(); ++i) resolved.emplace(i, std::move(got[i]));
+    }
+    // 2) Stream the writes in batch order, placeholders replaced.  Writes
+    //    get no reply, so they cost no round trip.
+    for (auto& [slot, cipher] : d_writes_) {
+        uint64_t id;
+        if (is_placeholder(cipher, &id)) {
+            auto it = resolved.find(id);
+            if (it == resolved.end())
+                throw std::logic_error("[NetIOConnector] end_deferred: unresolved placeholder");
+            cipher = it->second;
+        }
+        insert_slot(slot, cipher, d_name_, bs);
+    }
+    d_fetch_.clear(); d_writes_.clear(); d_written_.clear();
+    return resolved;
 }
 
 // ========================================

@@ -1,0 +1,4 @@
+epsilon,arm,placement,agg_frac,agg_group,agg_eps,epochs,served,proxy_answered,agg_offered,agg_committed_oram,regular_committed,aborted,read_batch_full,read_batch_full_rate,oram_real_reads,oram_reads_per_served_txn,read_slots_sent,read_batch_occupancy,epoch_ms_total,throughput_txn_s,regular_txn_s,throughput_txn_s_with_refresh,refreshes,agg_releases,cumulative_agg_eps,noisy_answers,noisy_mean_abs_err,fanout,affinity_cut,partitions
+0.5,oram,dpart,0.1,32,0,8,3973,0,1137,169,3804,8827,8827,0.6896,8192,2.0619,8192,1.0000,1837.61,2162.05,2070.08,1738.89,1,0,0.00,0,0.000,1.1283,0.0858,4
+0.5000,exact,dpart,0.1000,32,0.0000,8,6810,1137,1137,0,5673,5990,5990,0.5136,8188,1.2023,8192,0.9995,1829.10,3723.15,3101.53,2984.99,1,0,0.00,0,0.000,1.1283,0.0858,4
+0.0000,oram,random,0.1000,32,0.0000,8,4176,0,1099,168,4008,8624,8624,0.6737,8191,1.9614,8192,0.9999,1850.03,2257.26,2166.45,2257.26,0,0,0.00,0,0.000,2.3007,0.7444,4

@@ -1,0 +1,6 @@
+rho,policy,k,E_max,C_ioo,epsilon,standby_factor,target_ins_per_epoch,epochs,offered_ins,placed_ins,rejected_ins,insert_reject_pct,absorbed_by_rebuild,standby_blocks_max,repartitions,mean_repartition_ms,ioo_util_at_repartition_pct,ioo_util_at_repartition_max_shard_pct,inserts_per_repartition,A_priv,cumulative_eps,committed,aborted,epoch_ms_total,repartition_ms_total,throughput_fg_txn_s,throughput_eff_txn_s,realized_rho,initial_rows,final_rows
+0.25,backpressure,4,20,4096,1,0,51.20,40,2048,2048,0,0.00,0,0,2,686.47,25.00,35.99,1024.00,1024.00,3.00,21513,34935,9475.59,1372.94,2270.36,1983.03,0.250,20000,22048
+0.500,backpressure,4,20,4096,1.000,0.000,102.40,40,4096,4096,0,0.00,0,0,2,688.68,50.00,72.61,2048.00,2048.00,3.00,23561,34935,9567.00,1377.36,2462.74,2152.80,0.500,20000,24096
+1.000,backpressure,4,20,4096,1.000,0.000,204.80,40,8192,7291,901,11.00,0,0,2,690.75,89.00,100.00,3645.50,3645.50,3.00,26736,34955,9612.19,1381.51,2781.47,2431.94,0.890,20000,27291
+1.500,backpressure,4,20,4096,1.000,0.000,307.20,40,12287,7811,4476,36.43,0,0,2,692.56,95.35,100.00,3905.50,3905.50,3.00,27314,34897,9565.07,1385.13,2855.60,2494.38,0.953,20000,27811
+2.000,backpressure,4,20,4096,1.000,0.000,409.60,40,16384,8192,8192,50.00,0,0,2,689.71,100.00,100.00,4096.00,4096.00,3.00,27585,35007,9481.50,1379.42,2909.35,2539.84,1.000,20000,28192

@@ -42,10 +42,8 @@
 
 #include "MultiRingORAM_Servers.h"
 #include "Queries_Receiving.h"
+#include "DataPath.h"
 
-extern std::mutex         queue_mu_;
-extern std::vector<txn>   incoming_queue_;
-extern std::atomic<bool>  accepting_;
 
 // ============================================================================
 // Helpers
@@ -62,10 +60,14 @@ static std::vector<std::string> readCSV(const std::string& filename) {
     return data;
 }
 
-static void push_txn_to_queue(const txn& t) {
-    if (!accepting_.load()) return;
-    std::lock_guard<std::mutex> lk(queue_mu_);
-    incoming_queue_.push_back(t);
+static void push_txn_to_queue(QueriesReceiving& qr, const txn& t) {
+    // Intake is open only between collect_epoch()'s start and its drain.
+    // Retry briefly, then give up (the epoch closed) instead of losing the txn
+    // silently the way the old extern-global push did.
+    for (int i = 0; i < 2000; ++i) {
+        if (qr.push_txn(t)) return;
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
 }
 
 static Operat make_op(OpType type, uint32_t key, const std::string& val,
@@ -267,11 +269,7 @@ static DiagResult run_fixed_threshold_test(
     // ================================================================
     // Step 2: Epoch collection
     // ================================================================
-    {
-        std::lock_guard<std::mutex> lk(queue_mu_);
-        incoming_queue_.clear();
-    }
-    accepting_.store(false);
+    // (collect_epoch() opens, drains and closes the intake itself)
 
     QueriesReceiving qr;
     std::vector<std::thread> client_threads;
@@ -280,13 +278,18 @@ static DiagResult run_fixed_threshold_test(
     for (int c = 0; c < NUM_CLIENTS; c++) {
         client_threads.emplace_back([&, c]() {
             std::mt19937 rng(c * 7777 + 42);
-            while (!accepting_.load())
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
             for (int t_idx = 0; t_idx < TXNS_PER_CLIENT; t_idx++) {
                 txn t;
                 int nops = 2 + (rng() % 3);
                 for (int q = 0; q < nops; q++) {
                     int sid = rng() % servers.size();
+                    // Partition-local BLOCK ID in [0, blocks_per_server[sid]).
+                    // Correct for this path: these benchmarks dispatch with
+                    // sendBatchToServer(), which sends data_primary_key straight
+                    // to the child as the block id — the pos_map translation
+                    // (ObjectKey → block_id) happens only inside
+                    // executeOramOps().  Feeding a global data index here would
+                    // address blocks that do not exist on that shard.
                     uint32_t block_id = rng() % blocks_per_server[sid];
                     OpType type = (rng() % 2 == 0) ? OpType::READ : OpType::UPDATE;
                     std::string val = "";
@@ -295,7 +298,7 @@ static DiagResult run_fixed_threshold_test(
                     t.operations.push_back(
                         make_op(type, block_id, val, sid, (q == nops - 1)));
                 }
-                push_txn_to_queue(t);
+                push_txn_to_queue(qr, t);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
         });
@@ -544,8 +547,7 @@ int main() {
     int    EPOCH_MS         = 500;
 
     // 500-record dataset
-    std::string csv_path_in = "/Users/xiningyuan/Desktop/seal-oram-netio-master-copy/"
-                              "Testing/Unit Tests/test_data_500.csv";
+    std::string csv_path_in = departDataPath("Testing/Unit Tests/test_data_500.csv");
 
     std::string schema = "customer_id:int32,region:int32,order_amount:int32,timestamp:int32";
     std::vector<int> attr = {0};  // partition by customer_id (500 bins of 1 → fine-grained)

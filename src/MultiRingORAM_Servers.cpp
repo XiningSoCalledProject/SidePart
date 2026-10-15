@@ -50,7 +50,13 @@
 #include <signal.h>
 #include <iomanip>
 #include <unordered_map>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <atomic>
+#include <stdexcept>
 #include "MultiRingORAM_Servers.h"
+#include "NetEmu.h"          // batch-level network emulation (off unless DEPART_NET_* is set)
 
 #define BUFFER_SIZE    4096
 #define DEFAULT_STARTING_PORT 8881
@@ -167,97 +173,259 @@ bool MultiRingORAM_Servers::read_all(int fd, void* buf, size_t n) {
 }
 
 // ============================================================================
-// Data Distribution
+// Data Distribution + pos_map (revised 9/22/26)
 // ============================================================================
+//
+// pos_map:  ObjectKey → (server_id, block_id)   (PartitionPosMap)
+//
+// Previously pk_to_blockid_[server_id][uint32 pk]: CUSTOMER(C=1) and
+// ORDERS(O=1) on one server collided (the later one overwrote the earlier),
+// and all ORDER_LINE rows of an order collapsed to one entry.  The map is
+// now keyed by the SAME ObjectKey the proxy's MVTSO layer uses.
+//
+// ── MULTI-TABLE LIFECYCLE (union across tables) ─────────────────────────────
+// A TPC-C-derived workload partitions EACH TABLE separately and then unions
+// the i-th partition of every table into one shard:
+//
+//     P_i  =  P_CUSTOMER,i  ∪  P_ORDERS,i  ∪  P_ORDER_LINE,i  ∪  …   →  S_i
+//
+// So one ORAM instance (one server_id) holds records of MANY tables, and the
+// pos_map must accumulate them.  The build is therefore explicit:
+//
+//     mrs.beginPositionMapBuild();                                  // once
+//     mrs.addTablePartitions(TpccTable::CUSTOMER,   bi_c, parts_c, servers, data_c);
+//     mrs.addTablePartitions(TpccTable::ORDERS,     bi_o, parts_o, servers, data_o);
+//     mrs.addTablePartitions(TpccTable::ORDER_LINE, bi_l, parts_l, servers, data_l);
+//     mrs.finishPositionMapBuild();                                 // once
+//
+// Every addTablePartitions() APPENDS; only beginPositionMapBuild() resets.
+// Calling distributeDataToPartitions() once per table would have left only
+// the LAST table in the pos_map.
+//
+// The SAME `servers` vector is normally passed for every table: table T's
+// partition i and table U's partition i land on the same server_id, which is
+// exactly the union above.
+//
+// Consequences handled here:
+//   * BLOCK IDS CONTINUE ACROSS TABLES on a server.  Table T's slice occupies
+//     [0, n_T), table U's [n_T, n_T + n_U), … and the filler blocks
+//     (Σ dummy_num + insert_reserve) come last — so a server must be
+//     initialised ONCE with all its slices, in the same order they were added
+//     here (ServerInitializationUnion / ServerInitializationBulkUnion).
+//   * partition ids are made GLOBAL (a running counter across tables); the
+//     caller's per-table indices 0..k-1 are not used as map keys;
+//   * bin keys are qualified with the table id, because bin keys are raw
+//     attribute values and repeat across tables.
+//
+// TERMINOLOGY: `server_id` identifies an ORAM INSTANCE (one child process,
+// one RingORAM), not a physical machine.  Several instances may be hosted by
+// one machine — record that with setPhysicalServer() if you report it.
+//
+// distributeDataToPartitions() stays as the single-table shorthand
+// (begin + add + finish), so existing single-table benchmarks are unchanged.
+//
+// Block ids replay the EXACT order ServerInitialization /
+// ServerInitializationBulk insert records: part.index →
+// bin_info.bin_key_to_data_indices[bin_key], real records first
+// (block 0 .. R-1), then part.dummy_num dummy fillers (R .. R+dummy-1).
+//
+// Filler blocks (dummy_num DP padding + insert_reserve_per_partition_) are
+// registered as free blocks: a later INSERT of a new row takes one over, so
+// the ORAM tree size never changes.  NOTE: dummy_num = noisy − real is only
+// noise-sized (≈0, and 0 in Case B), so the public insert reserve is what
+// actually provides T8 capacity.  setInsertReservePerPartition() must be
+// called BEFORE the build and before ServerInitialization*.
+//
+// Key extraction, in order of preference:
+//   1. key_mapper_ (setObjectKeyMapper): ObjectKey from (data_idx, record).
+//      Required for TPC-C (composite keys, many tables).
+//   2. pk_mapper_ (setPrimaryKeyMapper, legacy): ObjectKey{0,0,0,pk}.
+// `record` is data[data_idx] when data is supplied, else "".
+//
+// A duplicate ObjectKey (two records → same logical row) throws
+// std::logic_error: that is a key-mapper bug and must not be papered over.
+// ============================================================================
+// Verify the caller hands a server exactly the slices the pos_map registered
+// for it, in the same order — otherwise block ids would not line up and every
+// row on that server would read back the wrong record.
+void MultiRingORAM_Servers::checkSliceOrder(int server_id,
+                                            const std::vector<TableSlice>& slices) const {
+    const auto& layout = sliceLayout(server_id);
+    if (layout.empty()) return;          // single-table / legacy build: nothing to check
+    if (layout.size() != slices.size())
+        throw std::logic_error("[ServerInit] server " + std::to_string(server_id) +
+                               " was registered with " + std::to_string(layout.size()) +
+                               " table slice(s) but is being initialised with " +
+                               std::to_string(slices.size()));
+    for (size_t i = 0; i < slices.size(); ++i) {
+        if (layout[i].table_id != slices[i].table_id)
+            throw std::logic_error(
+                "[ServerInit] server " + std::to_string(server_id) + " slice " +
+                std::to_string(i) + ": pos_map has table " +
+                std::to_string(layout[i].table_id) + " but init got table " +
+                std::to_string(slices[i].table_id) +
+                " (slices must be passed in addTablePartitions order)");
+    }
+}
+
+std::string MultiRingORAM_Servers::qualifiedBinKey(uint16_t table_id,
+                                                   const std::string& bin_key) {
+    return std::to_string(table_id) + "|" + bin_key;
+}
+
+void MultiRingORAM_Servers::beginPositionMapBuild() {
+    pos_map_.clear();
+    bin_key_to_partition_id_.clear();
+    partition_id_to_server_id_.clear();
+    server_id_to_partition_id_.clear();
+    server_next_block_.clear();
+    server_dummy_total_.clear();
+    server_slices_.clear();
+    next_global_partition_id_ = 0;
+    building_pos_map_         = true;
+    std::cout << "\n📦 Position-map build started.\n";
+}
+
+void MultiRingORAM_Servers::addTablePartitions(
+    uint16_t table_id,
+    const BinInfo& bin_info,
+    const std::vector<Partition>& partitions,
+    std::vector<ServerInfo>& servers,
+    const std::vector<std::string>& data)
+{
+    if (!building_pos_map_)
+        throw std::logic_error("[pos_map] addTablePartitions() called outside "
+                               "beginPositionMapBuild()/finishPositionMapBuild()");
+    if (servers.size() < partitions.size())
+        throw std::logic_error("[pos_map] fewer ServerInfo entries (" +
+                               std::to_string(servers.size()) + ") than partitions (" +
+                               std::to_string(partitions.size()) + ") for table " +
+                               std::to_string(table_id));
+
+    static const std::string kEmpty;
+    auto keyOf = [&](uint32_t data_idx) -> ObjectKey {
+        const std::string& record = data_idx < data.size() ? data[data_idx] : kEmpty;
+        if (key_mapper_) return key_mapper_(data_idx, record);
+        return ObjectKey{0, 0, 0, static_cast<uint64_t>(pk_mapper_(data_idx, record))};
+    };
+
+    for (uint32_t local_id = 0; local_id < partitions.size(); ++local_id) {
+        const Partition& part = partitions[local_id];
+        ServerInfo& server    = servers[local_id];
+        const int sid         = server.server_id;
+
+        const uint32_t part_id = next_global_partition_id_++;
+        partition_id_to_server_id_[part_id] = sid;
+        server_id_to_partition_id_[sid]     = part_id;   // last slice wins (diagnostics only)
+        pos_map_.ensureServer(sid);
+
+        // Block ids continue where the previous table's slice ended on this
+        // server; ServerInitialization*Union replays exactly this order.
+        uint32_t block_counter = server_next_block_[sid];
+        const uint32_t first_block = block_counter;
+        for (const auto& bin_key : part.index) {
+            bin_key_to_partition_id_[qualifiedBinKey(table_id, bin_key)] = part_id;
+            auto it = bin_info.bin_key_to_data_indices.find(bin_key);
+            if (it == bin_info.bin_key_to_data_indices.end()) continue;
+            for (uint32_t data_idx : it->second) {
+                server.assigned_data_indices.push_back(data_idx);
+                pos_map_.addRecord(sid, keyOf(data_idx), block_counter);
+                ++block_counter;
+            }
+        }
+        server_next_block_[sid] = block_counter;
+        // Fillers (Σ dummy_num + one insert reserve per server) are appended
+        // after ALL tables' records, so they are registered in finish().
+        server_dummy_total_[sid] += part.dummy_num;
+        server_slices_[sid].push_back(TableSliceInfo{table_id, local_id,
+                                                     first_block, block_counter - first_block});
+
+        std::cout << "  Table " << table_id << " → Server " << sid
+                  << " (Partition " << part_id << "): "
+                  << part.index.size() << " bins, "
+                  << (block_counter - first_block) << " records at blocks ["
+                  << first_block << ", " << block_counter << ")\n";
+    }
+}
+
+void MultiRingORAM_Servers::finishPositionMapBuild() {
+    if (!building_pos_map_)
+        throw std::logic_error("[pos_map] finishPositionMapBuild() without "
+                               "beginPositionMapBuild()");
+    // Filler blocks sit after every table's records on that server:
+    //   [0, R_total)                       real rows of all slices
+    //   [R_total, R_total + Σdummy + Rins) dummy fillers / insert reserve
+    for (const auto& [sid, real_total] : server_next_block_) {
+        pos_map_.addFreeBlocks(sid, real_total,
+                               server_dummy_total_[sid] + insert_reserve_per_partition_);
+        std::cout << "  Server " << sid << ": " << server_slices_[sid].size()
+                  << " table slice(s), " << real_total << " rows, "
+                  << pos_map_.freeBlocks(sid) << " insert slots\n";
+    }
+    building_pos_map_ = false;
+    std::cout << "✅ Position-map build complete: "
+              << next_global_partition_id_ << " partitions across "
+              << server_next_block_.size() << " ORAM instances, "
+              << pos_map_.totalKeys() << " rows.\n";
+}
+
+const std::vector<TableSliceInfo>& MultiRingORAM_Servers::sliceLayout(int server_id) const {
+    static const std::vector<TableSliceInfo> kEmpty;
+    auto it = server_slices_.find(server_id);
+    return it == server_slices_.end() ? kEmpty : it->second;
+}
+
+// Single-table shorthand (begin + add + finish), table_id = 0.
 void MultiRingORAM_Servers::distributeDataToPartitions(
     const BinInfo& bin_info,
     const std::vector<Partition>& partitions,
     std::vector<ServerInfo>& servers)
 {
-    std::cout << "\n📦 Step 3: Distributing data to partitions...\n";
+    static const std::vector<std::string> kNoData;
+    distributeDataToPartitions(bin_info, partitions, servers, kNoData);
+}
 
-    // ── Reset pos_map (4/26/26) ──────────────────────────────────────────
-    // Defensive: if distributeDataToPartitions is ever called more than
-    // once (e.g., re-init for a fresh experiment), don't accumulate stale
-    // mappings.
-    pk_to_blockid_.clear();
-
-    for (uint32_t part_id = 0; part_id < partitions.size(); ++part_id) {
-        const Partition& part = partitions[part_id];
-        ServerInfo& server    = servers[part_id];
-
-        partition_id_to_server_id_[part_id] = server.server_id;
-        server_id_to_partition_id_[server.server_id] = part_id;
-
-        // ── pos_map population (4/26/26) ──────────────────────────────────
-        // Replay the EXACT iteration order that ServerInitialization uses
-        // when calling oram->access(block_counter, INSERT, ...).  Both
-        // loops walk part.index → bin_info.bin_key_to_data_indices.at(...)
-        // in the same order, so block_counter increments lockstep.  We
-        // record (server_id, primary_key) → block_id here so that later
-        // ops can be routed correctly.
-        //
-        // NOTE: dummy padding records (Case A: part.dummy_num > 0) are NOT
-        // entered into the map.  They have no application-level PK and
-        // are never the target of a real op.
-        auto& server_pkmap = pk_to_blockid_[server.server_id];
-        uint32_t block_counter = 0;
-
-        for (const auto& bin_key : part.index) {
-            bin_key_to_partition_id_[bin_key] = part_id;
-            auto it = bin_info.bin_key_to_data_indices.find(bin_key);
-            if (it != bin_info.bin_key_to_data_indices.end()) {
-                for (uint32_t data_idx : it->second) {
-                    server.assigned_data_indices.push_back(data_idx);
-
-                    // pk_mapper_ defaults to identity (pk == data_idx).
-                    // The std::string here is unused by the default mapper;
-                    // we don't have access to the data vector at this point,
-                    // so we pass empty.  If the application overrides
-                    // pk_mapper_ to parse from record bytes, the caller
-                    // should call setPrimaryKeyMapper BEFORE this function
-                    // AND ensure it works without record bytes (or call
-                    // populatePkMapFromData separately — see TODO below).
-                    uint32_t pk = pk_mapper_(data_idx, std::string{});
-                    server_pkmap[pk] = block_counter;
-                    ++block_counter;
-                }
-            }
-        }
-        // block_counter now equals the number of REAL records on this
-        // partition.  ServerInitialization will continue from
-        // block_counter onward for dummy padding (block_counter ..
-        // block_counter + part.dummy_num - 1), but those don't need
-        // map entries.
-
-        std::cout << "  Server " << server.server_id
-                  << " (Partition " << part_id << "): "
-                  << server.assigned_bins.size() << " bins, "
-                  << server.assigned_data_indices.size() << " records"
-                  << "  pk_map_size=" << server_pkmap.size() << "\n";
-    }
-    std::cout << "✅ Data distribution complete.\n";
+void MultiRingORAM_Servers::distributeDataToPartitions(
+    const BinInfo& bin_info,
+    const std::vector<Partition>& partitions,
+    std::vector<ServerInfo>& servers,
+    const std::vector<std::string>& data)
+{
+    std::cout << "\n📦 Step 3: Distributing data to partitions (single table)...\n";
+    beginPositionMapBuild();
+    addTablePartitions(/*table_id=*/0, bin_info, partitions, servers, data);
+    finishPositionMapBuild();
 }
 
 // ============================================================================
-// pos_map lookup (4/26/26)
+// pos_map lookup
 // ============================================================================
-uint32_t MultiRingORAM_Servers::lookupBlockId(int server_id,
-                                              uint32_t primary_key) const
-{
-    auto sit = pk_to_blockid_.find(server_id);
-    if (sit == pk_to_blockid_.end()) return UINT32_MAX;
-    auto pit = sit->second.find(primary_key);
-    if (pit == sit->second.end()) return UINT32_MAX;
-    return pit->second;
+uint32_t MultiRingORAM_Servers::lookupBlockId(int server_id, const ObjectKey& key) const {
+    return pos_map_.lookup(server_id, key);
+}
+
+// Legacy: untyped single-table benchmarks, ObjectKey = (0, 0, 0, pk).
+uint32_t MultiRingORAM_Servers::lookupBlockId(int server_id, uint32_t primary_key) const {
+    return pos_map_.lookup(server_id, ObjectKey{0, 0, 0, primary_key});
+}
+
+// Tuple width each server's records were loaded with (parent-side copy).
+// ServerInitialization* may run concurrently for several servers.
+static std::mutex g_tuple_width_mu;
+
+void MultiRingORAM_Servers::recordTupleWidth(int server_id, uint32_t width) {
+    std::lock_guard<std::mutex> lk(g_tuple_width_mu);
+    tuple_width_by_server_[server_id] = width;
+}
+
+uint32_t MultiRingORAM_Servers::tupleWidthOf(int server_id) const {
+    std::lock_guard<std::mutex> lk(g_tuple_width_mu);
+    auto it = tuple_width_by_server_.find(server_id);
+    return it == tuple_width_by_server_.end() ? 0 : it->second;
 }
 
 void MultiRingORAM_Servers::printPkMapStats() const {
-    std::cout << "[pos_map] " << pk_to_blockid_.size() << " server(s):";
-    for (const auto& [sid, m] : pk_to_blockid_) {
-        std::cout << "  s" << sid << "=" << m.size() << " entries";
-    }
-    std::cout << std::endl;
+    pos_map_.printStats(std::cout);
 }
 
 // ============================================================================
@@ -265,7 +433,15 @@ void MultiRingORAM_Servers::printPkMapStats() const {
 // ============================================================================
 // Child event loop (runs inside forked child process).
 // oram is already initialized; child reads batches and executes them.
-static void child_event_loop(RingORAM* oram, int read_fd, int write_fd) {
+// conn: the child's connection to its storage listener.  RingORAM's destructor
+// does NOT delete its connector, so the child must do it: ~NetIOConnector sends
+// the close opcode (-1) and flushes before the socket closes.  Without it the
+// listener hits EOF mid-read, and emp-tool's NetIO (net_io_channel.h: fread ==
+// 0 -> error("net_recv_data") -> exit(1)) kills the listener, so the NEXT run
+// on that port hangs forever in connect.  Older emp-tool builds tolerated the
+// EOF, which is why this only showed up on some machines.
+static void child_event_loop(RingORAM* oram, NetIOConnector* conn,
+                             int read_fd, int write_fd) {
     using clk = std::chrono::high_resolution_clock;
 
     // Reusable helper for var-length writes (handles partial-write loop).
@@ -296,8 +472,10 @@ static void child_event_loop(RingORAM* oram, int read_fd, int write_fd) {
         // had no way to read row data through the ORAM).  We now collect each
         // result and stream them back after the summary header.
         std::vector<std::string> op_results;
-        op_results.reserve(num_ops);
+        std::vector<RingORAM::BatchOp> batch_ops;
+        batch_ops.reserve(num_ops);
 
+        // 1) Read the WHOLE batch from the pipe first (10/8/26) ...
         for (uint32_t j = 0; j < num_ops; ++j) {
             uint8_t  type_byte;
             uint32_t key;
@@ -323,12 +501,6 @@ static void child_event_loop(RingORAM* oram, int read_fd, int write_fd) {
                 OpType op_type = static_cast<OpType>(type_byte);
 
                 // ── FIX (4/26/26): UPDATE val must carry bID(4) prefix ────
-                // The convention (matches test_ringoram + ServerInitialization)
-                // is that data_in for INSERT/UPDATE is `bID(4) + tuple_data`.
-                // If proxy forgets the prefix, the bID stored in the cipher
-                // is wrong and READ verification silently corrupts.  We log
-                // once instead of aborting so a single misconfigured op does
-                // not kill the whole benchmark.
                 if (op_type == OpType::UPDATE && val_len > 0) {
                     static uint64_t bad_update = 0;
                     static uint64_t bad_warned = 0;
@@ -356,15 +528,27 @@ static void child_event_loop(RingORAM* oram, int read_fd, int write_fd) {
                         }
                     }
                 }
-
-                // Capture access() return value:
-                //   READ   → plaintext (caller may need to truncate trailing
-                //            zero padding to expected tuple width)
-                //   UPDATE → "" (empty)
-                //   INSERT → "" (empty)
-                std::string acc = oram->access(key, op_type, val);
-                op_results.push_back(std::move(acc));
+                batch_ops.push_back({key, op_type, std::move(val)});
                 if (!is_dummy) ++real_ops;
+            }
+        }
+
+        // 2) ... then execute it as ONE ORAM batch: one network round trip
+        //    for all slot reads + one streamed write burst (RingORAM::
+        //    access_batch), instead of ~2 round trips per access.  Results:
+        //    READ -> plaintext, UPDATE/INSERT -> "" (same as access()).
+        //    Set DEPART_ORAM_SEQUENTIAL=1 to get the old per-access path.
+        {
+            static const bool sequential = [] {
+                const char* e = std::getenv("DEPART_ORAM_SEQUENTIAL");
+                return e && std::string(e) == "1";
+            }();
+            if (sequential) {
+                op_results.reserve(batch_ops.size());
+                for (const auto& op : batch_ops)
+                    op_results.push_back(oram->access(op.block_id, op.op, op.data));
+            } else {
+                op_results = oram->access_batch(batch_ops);
             }
         }
 
@@ -405,11 +589,33 @@ static void child_event_loop(RingORAM* oram, int read_fd, int write_fd) {
     }
 
     delete oram;
+    delete conn;          // sends close opcode (-1) -> listener waits for next connection
+    std::cout.flush();
     close(read_fd);
     close(write_fd);
     exit(0);
 }
 
+// ── Union helpers (9/22/26) ─────────────────────────────────────────────────
+// One ORAM instance holds the i-th partition of EVERY table (P_i = ∪_T P_T,i).
+// The slices must be passed in the same order they were added to the pos_map,
+// because block ids were handed out in that order.
+static uint32_t maxTupleWidth(const std::vector<TableSlice>& slices) {
+    uint32_t w = 0;
+    for (const auto& sl : slices) w = std::max(w, tupleWidthBytesFromSchema(sl.schema_str));
+    return w;   // all tables in one ORAM share one block layout → widest wins
+}
+static uint32_t sumNoisy(const std::vector<TableSlice>& slices) {
+    uint32_t n = 0; for (const auto& sl : slices) n += sl.part->noisy_synopsis; return n;
+}
+static uint32_t sumDummy(const std::vector<TableSlice>& slices) {
+    uint32_t n = 0; for (const auto& sl : slices) n += sl.part->dummy_num; return n;
+}
+static uint32_t sumNoiseStashReserve(const std::vector<TableSlice>& slices) {
+    uint32_t n = 0; for (const auto& sl : slices) n += sl.part->noise_stash_reserve; return n;
+}
+
+// Single-table shorthand: one slice.
 void MultiRingORAM_Servers::ServerInitialization(
     const ServerInfo& server,
     const Partition&  part,
@@ -422,6 +628,26 @@ void MultiRingORAM_Servers::ServerInitialization(
     const std::string& host,
     uint32_t S_input)
 {
+    std::vector<TableSlice> slices{TableSlice{0, &bin_info, &part, &data, schema_str}};
+    ServerInitializationUnion(server, slices, bucket_size, std::move(oram_name),
+                              block_length, host, S_input);
+}
+
+void MultiRingORAM_Servers::ServerInitializationUnion(
+    const ServerInfo& server,
+    const std::vector<TableSlice>& slices,
+    uint32_t bucket_size,
+    std::string oram_name,
+    uint32_t block_length,
+    const std::string& host,
+    uint32_t S_input)
+{
+    if (slices.empty())
+        throw std::logic_error("[ServerInit] no table slices for server " +
+                               std::to_string(server.server_id));
+    checkSliceOrder(server.server_id, slices);
+    recordTupleWidth(server.server_id, maxTupleWidth(slices));
+
     // ── Create pipe pairs ─────────────────────────────────────────────────
     int to_child_fds[2], from_child_fds[2];
     if (pipe(to_child_fds) < 0 || pipe(from_child_fds) < 0) {
@@ -473,7 +699,29 @@ void MultiRingORAM_Servers::ServerInitialization(
             // changes between runs (different epsilon → different tree size).
             conn->clear(oram_name);
 
-            uint32_t tuple_width_bytes = tupleWidthBytesFromSchema(schema_str);
+            // One block layout for the whole instance: every table's tuples
+            // are padded to the widest schema among this server's slices.
+            uint32_t tuple_width_bytes = maxTupleWidth(slices);
+
+            // A tuple must at least hold the 4-byte block id that every record
+            // and every dummy carries.  Width 0 means the schema parser did not
+            // recognize the column types: csv_reader.cpp's fieldWidthBytes()
+            // knows int8/int16/int32/float/double/date/char(N)/varchar(N)/
+            // numeric(a-b) and returns 0 for anything else (uint32, bigint,
+            // text, ...).  Without this check the failure surfaces far away, as
+            // std::out_of_range("basic_string") from the dummy-filler substr.
+            if (tuple_width_bytes < sizeof(uint32_t)) {
+                std::string schemas;
+                for (const auto& sl : slices)
+                    schemas += (schemas.empty() ? "" : " | ") + sl.schema_str;
+                throw std::runtime_error(
+                    "[ServerInitialization] tuple width is " +
+                    std::to_string(tuple_width_bytes) + " bytes, need at least " +
+                    std::to_string(sizeof(uint32_t)) + " for the block id.  The column "
+                    "types in this schema are probably not ones csv_reader.cpp knows "
+                    "(int8/int16/int32/float/double/date/char(N)/varchar(N)/numeric(a-b)): " +
+                    schemas);
+            }
 
             // ── ORAM capacity ─────────────────────────────────────────────
             // Privacy invariant: ORAM tree is ALWAYS sized to noisy_synopsis.
@@ -483,42 +731,56 @@ void MultiRingORAM_Servers::ServerInitialization(
             //
             //   Case B (noisy < real):  noisy_synopsis < real
             //     → tree is smaller than the real record count.
-            //     → stash_overflow_count = real - noisy records permanently
-            //       live in the stash (RingORAM stash_limit is pre-enlarged).
+            //     → noise_stash_reserve = real - noisy extra stash CAPACITY is
+            //       reserved (RingORAM stash_limit is pre-enlarged).  Which
+            //       records sit in the stash at any moment is not fixed — they
+            //       move in and out with normal eviction.
             //     → server sees the same noisy-sized tree regardless of noise
             //       sign, closing the tree-height side channel.
-            uint32_t total_data_num = part.noisy_synopsis;
+            // Tree = noisy_synopsis + insert_reserve.  insert_reserve is a
+            // PUBLIC per-partition constant (independent of the data), so the
+            // tree height still reveals only DP-noised counts.  The reserve is
+            // pre-filled with dummy blocks exactly like dummy_num padding and
+            // later overwritten by INSERTs of new rows (see pos_map).
+            // Summed over the slices this instance holds (P_i = ∪_T P_T,i).
+            const uint32_t n_filler       = sumDummy(slices) + insert_reserve_per_partition_;
+            uint32_t       total_data_num = sumNoisy(slices) + insert_reserve_per_partition_;
 
             RingORAM* oram = new RingORAM(
                 total_data_num, bucket_size, oram_name, block_length, conn, S_input,
-                part.stash_overflow_count);   // permanent_stash_reserve for Case B
+                sumNoiseStashReserve(slices));   // extra stash CAPACITY for Case B
 
             // ── Insert real records ───────────────────────────────────────
             // Insert ALL real records unconditionally.
             //
             // Case A: dummy_num > 0; tree has room for all real records.
-            // Case B: stash_overflow_count > 0; tree is sized to noisy < real.
-            //   The first ~noisy records fill the tree via normal eviction;
-            //   the remaining stash_overflow_count records cannot evict into
-            //   the tree (it's full) and permanently reside in the stash.
-            //   RingORAM.stash_limit has been enlarged to accommodate them.
+            // Case B: noise_stash_reserve > 0; tree is sized to noisy < real.
+            //   All real records are inserted; the tree fills to its noisy
+            //   capacity and the remainder (≈ real − noisy) stays in the stash.
+            //   Which records those are changes with every eviction; only the
+            //   COUNT is bounded, by noise_stash_reserve.  RingORAM.stash_limit
+            //   has been enlarged by that reserve.
             uint32_t block_counter = 0;
 
-            for (const auto& bin_key : part.index) {
-                const auto& data_indices = bin_info.bin_key_to_data_indices.at(bin_key);
-                for (uint32_t data_idx : data_indices) {
-                    std::string value = data[data_idx];
-                    value.resize(tuple_width_bytes);
-                    int32_t blockID = block_counter;
-                    std::string bID((const char*)(&blockID), sizeof(uint32_t));
-                    value = bID + value;
-                    oram->access(block_counter, OpType::INSERT, value);
-                    block_counter++;
+            // Slice order == the order addTablePartitions() registered them.
+            for (const auto& sl : slices) {
+                for (const auto& bin_key : sl.part->index) {
+                    auto bit = sl.bin_info->bin_key_to_data_indices.find(bin_key);
+                    if (bit == sl.bin_info->bin_key_to_data_indices.end()) continue;
+                    for (uint32_t data_idx : bit->second) {
+                        std::string value = (*sl.data)[data_idx];
+                        value.resize(tuple_width_bytes);
+                        int32_t blockID = block_counter;
+                        std::string bID((const char*)(&blockID), sizeof(uint32_t));
+                        value = bID + value;
+                        oram->access(block_counter, OpType::INSERT, value);
+                        block_counter++;
+                    }
                 }
             }
 
             // Insert dummy padding (Case A only; Case B: dummy_num == 0 → no-op)
-            for (uint32_t d = 0; d < part.dummy_num; d++) {
+            for (uint32_t d = 0; d < n_filler; d++) {
                 std::string dummy_value(block_length, '\0');
                 dummy_value.resize(tuple_width_bytes);
                 int32_t blockID = block_counter;
@@ -528,11 +790,12 @@ void MultiRingORAM_Servers::ServerInitialization(
                 block_counter++;
             }
 
-            std::cout << "[ServerInit] Inserted "
-                      << (block_counter - part.dummy_num) << " real + "
-                      << part.dummy_num << " dummy records."
-                      << "  stash_overflow=" << part.stash_overflow_count
-                      << "  (permanently in stash)\n";
+            std::cout << "[ServerInit] server " << server.server_id << ": inserted "
+                      << (block_counter - n_filler) << " real (" << slices.size()
+                      << " table slice(s)) + " << sumDummy(slices) << " dummy + "
+                      << insert_reserve_per_partition_ << " insert-reserve records."
+                      << "  noise_stash_reserve=" << sumNoiseStashReserve(slices)
+                      << " (stash capacity headroom, not pinned records)\n";
 
             // ── Post-init stash flush ─────────────────────────────────────
             // Drain stash entries pushed in by Phase 2 (and normal INSERT eviction).
@@ -544,7 +807,7 @@ void MultiRingORAM_Servers::ServerInitialization(
             write(write_fd, &ready, sizeof(uint8_t));
 
             // Enter event loop (calls exit(0) internally)
-            child_event_loop(oram, read_fd, write_fd);
+            child_event_loop(oram, conn, read_fd, write_fd);
 
         } catch (const std::exception& e) {
             // Signal parent: init failed with 0 so it doesn't hang forever
@@ -597,6 +860,7 @@ void MultiRingORAM_Servers::ServerInitialization(
 //  NOTE: The insert-only RingORAM scenario at runtime must continue to use
 //  the ORIGINAL ServerInitialization path.
 // ============================================================================
+// Single-table shorthand: one slice.
 void MultiRingORAM_Servers::ServerInitializationBulk(
     const ServerInfo& server,
     const Partition&  part,
@@ -609,6 +873,26 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
     const std::string& host,
     uint32_t S_input)
 {
+    std::vector<TableSlice> slices{TableSlice{0, &bin_info, &part, &data, schema_str}};
+    ServerInitializationBulkUnion(server, slices, bucket_size, std::move(oram_name),
+                                  block_length, host, S_input);
+}
+
+void MultiRingORAM_Servers::ServerInitializationBulkUnion(
+    const ServerInfo& server,
+    const std::vector<TableSlice>& slices,
+    uint32_t bucket_size,
+    std::string oram_name,
+    uint32_t block_length,
+    const std::string& host,
+    uint32_t S_input)
+{
+    if (slices.empty())
+        throw std::logic_error("[BulkInit] no table slices for server " +
+                               std::to_string(server.server_id));
+    checkSliceOrder(server.server_id, slices);
+    recordTupleWidth(server.server_id, maxTupleWidth(slices));
+
     // ── Pipe + fork (identical to ServerInitialization) ──────────────────
     int to_child_fds[2], from_child_fds[2];
     if (pipe(to_child_fds) < 0 || pipe(from_child_fds) < 0) {
@@ -652,8 +936,34 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
             // legitimately change between runs.
             conn->clear(oram_name);
 
-            uint32_t tuple_width_bytes = tupleWidthBytesFromSchema(schema_str);
-            uint32_t total_data_num = part.noisy_synopsis;
+            uint32_t tuple_width_bytes = maxTupleWidth(slices);
+
+            // A tuple must at least hold the 4-byte block id that every record
+            // and every dummy carries.  Width 0 means the schema parser did not
+            // recognize the column types: csv_reader.cpp's fieldWidthBytes()
+            // knows int8/int16/int32/float/double/date/char(N)/varchar(N)/
+            // numeric(a-b) and returns 0 for anything else (uint32, bigint,
+            // text, ...).  Without this check the failure surfaces far away, as
+            // std::out_of_range("basic_string") from the dummy-filler substr.
+            if (tuple_width_bytes < sizeof(uint32_t)) {
+                std::string schemas;
+                for (const auto& sl : slices)
+                    schemas += (schemas.empty() ? "" : " | ") + sl.schema_str;
+                throw std::runtime_error(
+                    "[ServerInitialization] tuple width is " +
+                    std::to_string(tuple_width_bytes) + " bytes, need at least " +
+                    std::to_string(sizeof(uint32_t)) + " for the block id.  The column "
+                    "types in this schema are probably not ones csv_reader.cpp knows "
+                    "(int8/int16/int32/float/double/date/char(N)/varchar(N)/numeric(a-b)): " +
+                    schemas);
+            }
+            // Tree = Σ noisy_synopsis + insert_reserve.  insert_reserve is a
+            // PUBLIC per-partition constant (independent of the data), so the
+            // tree height still reveals only DP-noised counts.  The reserve is
+            // pre-filled with dummy blocks exactly like dummy_num padding and
+            // later overwritten by INSERTs of new rows (see pos_map).
+            const uint32_t n_filler       = sumDummy(slices) + insert_reserve_per_partition_;
+            uint32_t       total_data_num = sumNoisy(slices) + insert_reserve_per_partition_;
 
             // ── STEP 1: Silent-mode RingORAM construction ────────────────
             // RingORAM constructor runs normally (sets up height, stash,
@@ -663,7 +973,7 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
 
             RingORAM* oram = new RingORAM(
                 total_data_num, bucket_size, oram_name, block_length, conn, S_input,
-                part.stash_overflow_count);
+                sumNoiseStashReserve(slices));   // extra stash CAPACITY for Case B
 
             conn->set_silent(false);
 
@@ -675,19 +985,23 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
             // we'll upload a fresh dummy tree to the server. No per-record
             // access(INSERT), no eviction, no stash explosion.
             std::vector<std::pair<uint32_t, std::string>> records;
-            records.reserve(part.index.size() * 64);   // rough lower bound
+            records.reserve(total_data_num);
 
             uint32_t block_counter = 0;
-            for (const auto& bin_key : part.index) {
-                const auto& data_indices = bin_info.bin_key_to_data_indices.at(bin_key);
-                for (uint32_t data_idx : data_indices) {
-                    std::string value = data[data_idx];
-                    value.resize(tuple_width_bytes);
-                    int32_t blockID = block_counter;
-                    std::string bID((const char*)(&blockID), sizeof(uint32_t));
-                    value = bID + value;   // prepend 4-byte block_id prefix
-                    records.emplace_back(block_counter, std::move(value));
-                    block_counter++;
+            // Slice order == the order addTablePartitions() registered them.
+            for (const auto& sl : slices) {
+                for (const auto& bin_key : sl.part->index) {
+                    auto bit = sl.bin_info->bin_key_to_data_indices.find(bin_key);
+                    if (bit == sl.bin_info->bin_key_to_data_indices.end()) continue;
+                    for (uint32_t data_idx : bit->second) {
+                        std::string value = (*sl.data)[data_idx];
+                        value.resize(tuple_width_bytes);
+                        int32_t blockID = block_counter;
+                        std::string bID((const char*)(&blockID), sizeof(uint32_t));
+                        value = bID + value;   // prepend 4-byte block_id prefix
+                        records.emplace_back(block_counter, std::move(value));
+                        block_counter++;
+                    }
                 }
             }
             // Add dummy "records" — same as original ServerInitialization's
@@ -695,7 +1009,7 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
             // from the server's perspective (both in stash, stash-first reads
             // never look for them, they just pad access pattern distributions
             // that downstream privacy analyses rely on).
-            for (uint32_t d = 0; d < part.dummy_num; d++) {
+            for (uint32_t d = 0; d < n_filler; d++) {
                 std::string dummy_value(tuple_width_bytes, '\0');
                 int32_t blockID = block_counter;
                 std::string bID((const char*)(&blockID), sizeof(uint32_t));
@@ -705,9 +1019,11 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
                 block_counter++;
             }
 
-            std::cout << "[BulkInit] Built " << records.size()
-                      << " records (" << (block_counter - part.dummy_num)
-                      << " real + " << part.dummy_num << " dummy)\n";
+            std::cout << "[BulkInit] server " << server.server_id << ": built "
+                      << records.size() << " records (" << (block_counter - n_filler)
+                      << " real from " << slices.size() << " table slice(s) + "
+                      << sumDummy(slices) << " dummy + "
+                      << insert_reserve_per_partition_ << " insert-reserve)\n";
 
             // ── STEP 3: Direct stash load — no network, no eviction ──────
             // This populates ORAM's internal state (stash + pos_map) without
@@ -781,13 +1097,13 @@ void MultiRingORAM_Servers::ServerInitializationBulk(
 #endif
 
             std::cout << "[BulkInit] Complete for ORAM '" << oram_name
-                      << "'. stash_overflow=" << part.stash_overflow_count
-                      << "\n";
+                      << "'. noise_stash_reserve=" << sumNoiseStashReserve(slices)
+                      << " (stash capacity headroom, not pinned records)\n";
 
             uint8_t ready = 1;
             write(write_fd, &ready, sizeof(uint8_t));
 
-            child_event_loop(oram, read_fd, write_fd);
+            child_event_loop(oram, conn, read_fd, write_fd);
 
         } catch (const std::exception& e) {
             std::cerr << "[BulkInit Server " << server.server_id << "] ERROR: "
@@ -1033,8 +1349,18 @@ TransmissionResult MultiRingORAM_Servers::sendBatchToServer(
 // ============================================================================
 // Lookup helpers
 // ============================================================================
+int MultiRingORAM_Servers::getServerIdForBinKey(uint16_t table_id,
+                                                const std::string& bin_key) const {
+    return getServerIdForBinKey(qualifiedBinKey(table_id, bin_key));
+}
+
+// Legacy / already-qualified form.  Single-table builds use table_id 0, so
+// getServerIdForBinKey("0|" + bin_key) is what they need; the raw-bin-key
+// call below is kept working for them.
 int MultiRingORAM_Servers::getServerIdForBinKey(const std::string& bin_key) const {
     auto it = bin_key_to_partition_id_.find(bin_key);
+    if (it == bin_key_to_partition_id_.end())
+        it = bin_key_to_partition_id_.find(qualifiedBinKey(0, bin_key));
     if (it == bin_key_to_partition_id_.end()) return -1;
     auto it2 = partition_id_to_server_id_.find(it->second);
     if (it2 == partition_id_to_server_id_.end()) return -1;
@@ -1190,61 +1516,191 @@ BatchPlan buildBatchesFromOramOps(
 }
 
 // ============================================================================
-// Step 5 (4/26/26): execute the dedup'd plan against ORAMs
+// Step 5: execute ORAM-bound ops (revised 9/22/26)
 // ============================================================================
 //
-// Builds batches via buildBatchesFromOramOps, dispatches them to the right
-// server child via the existing sendBatchToServer helper, then walks the
-// returned per_op_results and places each into per_slot_results[slot_id]
-// (skipping padding dummies).
+// executeOramOps is a GENERIC executor.  If a server receives more than
+// batch_size real ops it splits them into several batch_size batches.
+// The Obladi-style fixed-epoch guarantee — every server gets exactly ONE
+// batch of bread (bwrite) ops per read (write) round — is enforced one
+// layer up: runEpoch_RBR_W aborts txns so that N_server ≤ bread/bwrite
+// before calling this function.  Do not describe this executor itself as
+// overflow-free.
 //
-// pos_map TRANSLATION (4/26/26): each op in the BatchInfo passed to
-// sendBatchToServer has its data_primary_key REPLACED with the partition-
-// local block_id (lookup via lookupBlockId).  The original input vector
-// `oram_bound_ops` is NOT modified, so the caller's plan still carries
-// PKs for diagnostics / result assembly.
+// pad_to_batch_size = true (security mode):
+//   * the last batch of each server is padded with dummy READs, and
+//   * EVERY server gets at least one full dummy batch, even with zero real
+//     ops (incl. an empty op list) — otherwise which servers were contacted
+//     in a round would be visible.
+// pad_to_batch_size = false: throughput mode, only contacted servers.
 //
-// PARALLEL per-server dispatch (paper §3.3 / §5.2 / §6.4):
-// batches are grouped by server; each server's batches run in their own
-// thread, so contacted ORAM instances execute concurrently.  Batches for
-// the SAME server stay sequential (one ORAM, one pipe).  The epoch's
-// completion time is therefore bounded by the slowest contacted server —
-// this is exactly the max_i(...) term in the §6.4 cost model.
+// pad_uncontacted_servers (only meaningful with pad_to_batch_size = true):
+//   true  (default) — the rule above: every server gets >= 1 full batch, so
+//                     the set of contacted servers C is hidden.
+//   false           — CONTACTED-ONLY mode: servers with real ops are padded to
+//                     batch_size; servers with none get NO batch.  This LEAKS
+//                     C for every round (which partitions / key ranges were
+//                     accessed).  Weaker threat model — opt-in only.
+//
+// pos_map translation (single-threaded, before any worker starts):
+//   ObjectKey = objectKeyOf(op)  →  block_id on bi.server_id
+//   * routing check: the key's home server must equal the op's server_id;
+//     otherwise the dispatch fails (partition-mapping bug).
+//   * READ of an unknown row → demoted to a dummy; result "" (row absent).
+//   * INSERT of a new row → takes a free dummy-filler block on that server
+//     (PartitionPosMap::allocate) and is sent as UPDATE, because the block
+//     already exists in the tree.  No free block → dispatch fails
+//     ("needs IOO"); allocations are rolled back.
+//   * INSERT of an existing row → sent as UPDATE (overwrite).
+//   * UPDATE of an unknown row → dispatch fails (application bug; the old
+//     code silently dropped it).
+//   * UPDATE/INSERT values are normalized to bID(4) + tuple padded to the
+//     server's load-time tuple width — the exact layout ServerInitialization
+//     writes (only the proxy knows block ids; see auto_prefix_block_id_).
+// The caller's oram_bound_ops is never modified.
+//
+// Parallel per-server dispatch (paper §3.3 / §5.2 / §6.4): one thread per
+// contacted server; batches of one server stay sequential.
 // ============================================================================
+// Stored block = bID(4) + tuple padded to the server's load-time tuple width
+// (exactly what ServerInitialization writes).  Keeping every write at that
+// width matters: RingORAM::access(UPDATE) re-chunks the new ciphertext but
+// does not drop chunk ids the old value used, so a SHORTER value would be
+// read back with stale trailing chunks.  tuple_width == 0 → width unknown
+// (not initialised through ServerInitialization*): prefix only.
+static std::string normalizeWriteValue(uint32_t block_id, const std::string& value,
+                                       uint32_t tuple_width) {
+    int32_t bid = static_cast<int32_t>(block_id);
+    const char* bid_bytes = reinterpret_cast<const char*>(&bid);
+    std::string tuple;
+    // Already prefixed with this block id (e.g. a READ result echoed back as
+    // the new value of a read-modify-write)?  Strip it, then re-normalize.
+    if (value.size() >= sizeof(int32_t) &&
+        std::memcmp(value.data(), bid_bytes, sizeof(int32_t)) == 0 &&
+        (tuple_width == 0 || value.size() == sizeof(int32_t) + tuple_width))
+        tuple = value.substr(sizeof(int32_t));
+    else
+        tuple = value;
+    if (tuple_width > 0) {
+        if (tuple.size() > tuple_width) {
+            static std::atomic<uint64_t> truncated{0};
+            if (truncated++ == 0)
+                std::cerr << "[executeOramOps] WARNING: write value (" << tuple.size()
+                          << " B) longer than tuple width (" << tuple_width
+                          << " B); truncating.  Further truncations not reported.\n";
+        }
+        tuple.resize(tuple_width, '\0');
+    }
+    return std::string(bid_bytes, sizeof(int32_t)) + tuple;
+}
+
 ExecutionResult MultiRingORAM_Servers::executeOramOps(
     const std::vector<Operat>& oram_bound_ops,
     uint32_t                   batch_size,
-    bool                       pad_to_batch_size)
+    bool                       pad_to_batch_size,
+    bool                       pad_uncontacted_servers)
 {
     ExecutionResult er;
     er.per_slot_results.assign(oram_bound_ops.size(), std::string{});
-
-    if (oram_bound_ops.empty()) {
-        er.success = true;
-        return er;
-    }
 
     if (batch_size == 0) {
         er.success       = false;
         er.error_message = "batch_size must be > 0";
         return er;
     }
+    const bool pad_all_servers = pad_to_batch_size && pad_uncontacted_servers;
+    if (oram_bound_ops.empty() && !pad_all_servers) {
+        er.success = true;
+        return er;
+    }
 
-    // Build batches at the requested granularity.
-    BatchPlan bp = buildBatchesFromOramOps(
-        oram_bound_ops, batch_size, pad_to_batch_size);
+    BatchPlan bp = buildBatchesFromOramOps(oram_bound_ops, batch_size, pad_to_batch_size);
+
+    // ── Every server gets a batch in security mode (hides C) ───────────
+    if (pad_all_servers) {
+        std::set<int> contacted;
+        for (const auto& bi : bp.batches) contacted.insert(bi.server_id);
+        for (const auto& kv : partition_id_to_server_id_) {
+            const int sid = kv.second;
+            if (!contacted.insert(sid).second) continue;
+            BatchInfo bi;
+            bi.server_id  = sid;
+            bi.batch_type = OpType::READ;
+            std::vector<uint32_t> slot_map;
+            for (uint32_t k = 0; k < batch_size; ++k) {
+                Operat dummy;
+                dummy.type             = OpType::READ;
+                dummy.data_primary_key = 0;
+                dummy.server_id        = sid;
+                dummy.is_dummy         = true;
+                dummy.global_op_id     = 0;
+                bi.operations.push_back(dummy);
+                slot_map.push_back(kSlotDummy);
+            }
+            bp.batches.push_back(std::move(bi));
+            bp.per_batch_op_to_slot.push_back(std::move(slot_map));
+        }
+    }
     er.total_batches_sent = bp.batches.size();
 
+    // ── pos_map translation (main thread) ──────────────────────────────
+    std::vector<std::pair<int, ObjectKey>> allocated;   // for rollback
+    std::vector<uint32_t>                  absent_slots; // READs of absent rows
+    auto fail = [&](const std::string& msg) {
+        for (const auto& [sid, k] : allocated) pos_map_.release(sid, k);
+        er.success       = false;
+        er.error_message = msg;
+        std::cerr << "[executeOramOps] ERROR: " << msg << "\n";
+        return er;
+    };
+
+    for (size_t b = 0; b < bp.batches.size(); ++b) {
+        BatchInfo&                   bi       = bp.batches[b];
+        const std::vector<uint32_t>& slot_map = bp.per_batch_op_to_slot[b];
+        for (size_t i = 0; i < bi.operations.size(); ++i) {
+            Operat& op = bi.operations[i];
+            if (op.is_dummy) continue;
+
+            const ObjectKey k    = objectKeyOf(op);
+            const int       home = pos_map_.serverOf(k);
+            if (home >= 0 && home != bi.server_id)
+                return fail("routing: " + k.str() + " lives on server " +
+                            std::to_string(home) + " but was routed to server " +
+                            std::to_string(bi.server_id));
+
+            uint32_t bid = pos_map_.lookup(bi.server_id, k);
+            if (bid == PartitionPosMap::kNoBlock) {
+                if (op.type == OpType::READ) {
+                    op.is_dummy = true;                 // row does not exist
+                    if (i < slot_map.size() && slot_map[i] != kSlotDummy)
+                        absent_slots.push_back(slot_map[i]);
+                    continue;
+                }
+                if (op.type != OpType::INSERT)
+                    return fail("UPDATE of unknown row " + k.str() + " on server " +
+                                std::to_string(bi.server_id));
+                bid = pos_map_.allocate(bi.server_id, k);
+                if (bid == PartitionPosMap::kNoBlock)
+                    return fail("no free block on server " + std::to_string(bi.server_id) +
+                                " for INSERT of " + k.str() +
+                                " (insert reserve exhausted; reorganize/repartition "
+                                "at the next epoch boundary or raise "
+                                "setInsertReservePerPartition)");
+                allocated.emplace_back(bi.server_id, k);
+            }
+            if (op.type == OpType::INSERT) op.type = OpType::UPDATE;   // block exists
+            op.data_primary_key = bid;
+            if (op.type != OpType::READ && auto_prefix_block_id_)
+                op.data_value = normalizeWriteValue(bid, op.data_value,
+                                                    tupleWidthOf(bi.server_id));
+        }
+    }
+
     // ── Group batch indices by server ───────────────────────────────────
-    // Iterating b in ascending order keeps each server's batch list in its
-    // original (RBW-sorted) order, so per-server execution order is
-    // unchanged versus the old sequential code.
     std::map<int, std::vector<size_t>> batches_by_server;
     for (size_t b = 0; b < bp.batches.size(); ++b)
         batches_by_server[bp.batches[b].server_id].push_back(b);
 
-    // One job per server; outcomes[j] is written only by worker j, so there
-    // is no shared-write race on this vector.
     struct ServerOutcome {
         bool        ok = true;
         std::string error_message;
@@ -1255,18 +1711,44 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
         batches_by_server.begin(), batches_by_server.end());
     std::vector<ServerOutcome> outcomes(server_jobs.size());
 
+    // ── Network emulation (NetEmu.h): bytes each shard's padded batches put on the wire this round.
+    //    Every worker sleeps RTT + bytes/BW before its batches, in parallel, so the round pays the
+    //    largest delay once.  Off (zero cost) unless DEPART_NET_RTT_MS / DEPART_NET_BW_MBPS is set.
+    std::vector<double> net_delay_ms(server_jobs.size(), 0.0);
+    if (netemu::config().enabled()) {
+        std::vector<uint64_t> job_bytes(server_jobs.size(), 0);
+        uint64_t round_bytes = 0, nbatches = 0;
+        for (size_t j = 0; j < server_jobs.size(); ++j) {
+            const uint64_t per_slot = netemu::bytesPerSlot(server_jobs[j].first);
+            for (size_t b : server_jobs[j].second) {
+                job_bytes[j] += uint64_t(bp.batches[b].operations.size()) * per_slot;
+                ++nbatches;
+            }
+            round_bytes += job_bytes[j];
+        }
+        double max_delay = 0.0;
+        for (size_t j = 0; j < server_jobs.size(); ++j) {
+            net_delay_ms[j] = netemu::delayMs(job_bytes[j], round_bytes);
+            max_delay = std::max(max_delay, net_delay_ms[j]);
+        }
+        if (round_bytes > 0) {
+            netemu::Counters& nc = netemu::counters();
+            nc.bytes   += round_bytes;
+            nc.batches += nbatches;
+            nc.rounds  += 1;
+            nc.round_delay_us += static_cast<uint64_t>(std::llround(max_delay * 1000.0));
+        }
+    }
+
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    // Worker: process all batches for ONE server, sequentially.
-    // Safe to run concurrently across servers because:
-    //   - each worker talks to a different child via a different fd pair;
-    //   - server_processes_ / pk_to_blockid_ are only read (no writes here);
-    //   - bp.batches[b] for a given server is touched by exactly one worker;
-    //   - er.per_slot_results is pre-sized and every op has a UNIQUE slot_id,
-    //     so writes land on disjoint elements (no reallocation, no overlap).
+    // Worker: all batches of ONE server, sequentially.  Workers only read
+    // shared state (translation already done), write disjoint slots of
+    // er.per_slot_results, and talk to different children.
     auto run_server = [&](size_t job_idx) {
-        ServerOutcome&               oc        = outcomes[job_idx];
-        const std::vector<size_t>&   batch_ids = server_jobs[job_idx].second;
+        ServerOutcome&             oc        = outcomes[job_idx];
+        const std::vector<size_t>& batch_ids = server_jobs[job_idx].second;
+        netemu::sleepMs(net_delay_ms[job_idx]);      // emulated proxy <-> shard network (0 if off)
 
         for (size_t b : batch_ids) {
             BatchInfo&                   bi       = bp.batches[b];
@@ -1278,26 +1760,8 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
                 return;
             }
 
-            // ── pos_map translation ───────────────────────────────────────
-            // For each REAL op, rewrite (server_id, primary_key) → block_id.
-            // Dummy ops keep PK=0.  oram_bound_ops (caller's plan) is NOT
-            // modified — only this batch's local copy is.
-            for (Operat& op : bi.operations) {
-                if (op.is_dummy) continue;
-                uint32_t bid = lookupBlockId(bi.server_id, op.data_primary_key);
-                if (bid == UINT32_MAX) {
-                    std::cerr << "[executeOramOps] WARNING: pk=" << op.data_primary_key
-                              << " has no block_id on server=" << bi.server_id
-                              << " (slot bypassed; result will be empty).\n";
-                    op.is_dummy = true;     // demote to dummy so child won't crash
-                    continue;
-                }
-                op.data_primary_key = bid;
-            }
-
             ServerInfo stub;
             stub.server_id = bi.server_id;
-
             TransmissionResult tr = sendBatchToServer(stub, bi);
 
             if (!tr.success) {
@@ -1314,8 +1778,7 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
             if (tr.per_op_results.size() != bi.operations.size()) {
                 std::cerr << "[executeOramOps] WARNING: batch " << b
                           << " expected " << bi.operations.size()
-                          << " per-op results, got " << tr.per_op_results.size()
-                          << "\n";
+                          << " per-op results, got " << tr.per_op_results.size() << "\n";
             }
 
             size_t n = std::min(slot_map.size(), tr.per_op_results.size());
@@ -1327,7 +1790,6 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
         }
     };
 
-    // Spawn one thread per contacted server; main thread joins them all.
     std::vector<std::thread> workers;
     workers.reserve(server_jobs.size());
     for (size_t j = 0; j < server_jobs.size(); ++j)
@@ -1338,7 +1800,6 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
     er.total_elapsed_ms =
         std::chrono::duration<double, std::milli>(t_end - t_start).count();
 
-    // ── Merge per-server outcomes ───────────────────────────────────────
     er.success = true;
     for (const auto& oc : outcomes) {
         er.total_real_ops_sent  += oc.real_ops;
@@ -1348,6 +1809,11 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
             if (er.error_message.empty()) er.error_message = oc.error_message;
         }
     }
+    if (!er.success) {
+        for (const auto& [sid, k] : allocated) pos_map_.release(sid, k);
+    }
+    // READs of absent rows return "" (not the dummy block's content).
+    for (uint32_t slot : absent_slots) er.per_slot_results[slot].clear();
 
     std::cout << "[executeOramOps]"
               << " batches="      << er.total_batches_sent
@@ -1355,6 +1821,8 @@ ExecutionResult MultiRingORAM_Servers::executeOramOps(
               << "  batch_size="  << batch_size
               << "  real_ops="    << er.total_real_ops_sent
               << "  dummy_ops="   << er.total_dummy_ops_sent
+              << "  inserts_placed=" << allocated.size()
+              << "  absent_reads=" << absent_slots.size()
               << "  elapsed_ms="  << er.total_elapsed_ms
               << std::endl;
 
