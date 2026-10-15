@@ -1,8 +1,8 @@
-# DePart: Scaling ORAM-Backed Databases with Differentially Private Partitioning
+# SidePart: Scalable and Oblivious Transactions for Secure Database Systems with Private Sharding
 
-This repository contains the research prototype for **DePart**, an ORAM-backed database system that scales transactional workloads using differentially private partitioning across multiple ORAM shards.
+This repository contains the research prototype for **SidePart**, an ORAM-backed database system that scales transactional workloads using differentially private partitioning across multiple ORAM shards.
 
-DePart combines:
+SidePart combines:
 
 1. DP-protected partitioning for constructing privacy-preserving ORAM shard layouts;
 2. Multi-ORAM transaction execution with partition-aware routing, deduplication, and per-shard batch construction;
@@ -10,7 +10,7 @@ DePart combines:
 
 This code accompanies the paper:
 
-> **DePart: Scaling ORAM-Backed Databases with Differentially Private Partitioning**
+> **SidePart: Scaling ORAM-Backed Databases with Differentially Private Partitioning**
 
 ## Artifact Status
 
@@ -66,8 +66,4 @@ Generate the data distribution with $Zipf = 1$'s data for Experiment $5$.
 
 
 ## Experiments Results 
-On a TPC-C benchmark workload with 4 shards and $\epsilon = 0.1$, Depart achieves $\sim 3 \times$ improvement in transaction throughput over the existing state of the art.
-![Privacy–Performance Trade-off Evaluation-100R](Testing/Experiment1/Test_Results/e2e_100R_v2.png)
-![Privacy–Performance Trade-off Evaluation-50R50W](Testing/Experiment1/Test_Results/e2e_50R50W_v2.png)
-![Privacy–Performance Trade-off Evaluation-67R33W](Testing/Experiment1/Test_Results/e2e_67R33W_v2.png)
-![Privacy–Performance Trade-off Evaluation-100W](Testing/Experiment1/Test_Results/e2e_100W_v2.png)
+ On TPC-C, data-aware SidePart achieves up to 24% higher throughput than zero-information placement at high offered load and up to approximately 7x higher throughput than a single-ORAM Obladi-style baseline.
