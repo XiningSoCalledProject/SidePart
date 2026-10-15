@@ -10,7 +10,7 @@ SidePart combines:
 
 This code accompanies the paper:
 
-> **SidePart: Scaling ORAM-Backed Databases with Differentially Private Partitioning**
+> **SidePart: Scalable and Oblivious Transactions for Secure Database Systems with Private Sharding**
 
 ## Artifact Status
 
