@@ -1,8 +1,3 @@
-//
-// NetIOConnector.h - 重新设计版本
-// 完全基于 RingORAM.cpp 的实际使用
-//
-
 #ifndef NETIOCONNECTOR_H
 #define NETIOCONNECTOR_H
 

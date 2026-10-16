@@ -1,0 +1,6 @@
+system,offered_txn_s,txn_type,committed,aborted_attempts,latency_p50_ms,latency_p95_ms,e2e_p50_ms,e2e_p95_ms,ops_per_committed
+depart,40,NewOrder,1795,295,2612.57,5672.24,2832.01,6504.39,45.3064
+depart,40,Payment,1720,6,2541.73,2864.72,2632.02,3992.18,5
+depart,40,OrderStatus,160,28,2770.32,4458.36,3119.9,4458.49,13.0375
+depart,40,Delivery,1591,414,2780.04,5709.07,3187.7,6880.43,31.9409
+depart,40,StockLevel,160,0,2570.55,2863.81,2727.17,3917.19,0

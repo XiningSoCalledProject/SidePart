@@ -1,6 +1,3 @@
-//
-// Created by Xining Yuan on 2/22/26.
-//
 
 #ifndef RINGORAM_HELPER_H
 #define RINGORAM_HELPER_H

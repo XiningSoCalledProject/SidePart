@@ -14,11 +14,6 @@
  *  limitations under the License.
  */
 
-//
-// Created by dong on 1/27/16.
-// Abstract Server Connector
-//
-
 #ifndef SEAL_ORAM_SERVER_CONNECTOR_H
 #define SEAL_ORAM_SERVER_CONNECTOR_H
 

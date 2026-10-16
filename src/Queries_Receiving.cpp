@@ -1,5 +1,3 @@
-//
-// Created by Xining Yuan on 2/24/26.
 // Revised 9/22/26 — see the revision block at the top of Queries_Receiving.h.
 //
 

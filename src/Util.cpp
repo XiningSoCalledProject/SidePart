@@ -14,10 +14,6 @@
  *  limitations under the License.
  */
 
-//
-// Created by Dong Xie on 7/6/2016.
-//
-
 #include "Util.h"
 #include <iostream>
 

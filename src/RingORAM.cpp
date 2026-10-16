@@ -1,11 +1,3 @@
-//
-// Created by Xining Yuan on 6/11/25.
-//
-
-//
-// Created by Xining Yuan on 4/28/25.
-//
-
 #include "RingORAM.h"
 #include <cmath>
 #include <cryptopp/osrng.h>

@@ -1,5 +1,4 @@
 //
-// Created by Xining Yuan on 7/15/25.
 // REDESIGNED: Two partitioning strategies based on max_partitions parameter
 //
 

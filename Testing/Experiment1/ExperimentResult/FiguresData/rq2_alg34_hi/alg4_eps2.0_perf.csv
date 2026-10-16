@@ -1,2 +1,0 @@
-epsilon,partitions,affinity_cut,fanout,epochs,committed,aborted,inserts,ioo_accesses,ioo_capacity,real_total,noisy_total,dummy_total,stash_reserve_total,refreshes,epochs_between_refreshes,refresh_frequency,mean_refresh_pause_ms,total_refresh_ms,amortized_refresh_pct,epoch_ms_total,throughput_txn_s,throughput_txn_s_with_refresh,partitions_max,cap_T
-2,4,0.021495,1.028667,8,3788,0,596,0,1284,20000,19963,4,41,3,2.667,0.375,456.77,1370.31,15.73,7341.74,515.95,434.80,5,5000.00

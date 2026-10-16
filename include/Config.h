@@ -14,10 +14,6 @@
  *  limitations under the License.
  */
 
-//
-// Created by Dong Xie on 7/6/2016.
-//
-
 #ifndef SEAL_ORAM_CONFIG_H
 #define SEAL_ORAM_CONFIG_H
 

@@ -1,7 +1,3 @@
-//
-// Created by Xining Yuan on 6/11/25.
-//
-
 #ifndef SEAL_ORAM_NETIO_RINGORAM_H
 #define SEAL_ORAM_NETIO_RINGORAM_H
 

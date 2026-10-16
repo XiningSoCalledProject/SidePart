@@ -1,5 +1,3 @@
-//
-// Created by Xining Yuan on 2/18/26.
 // Per-server process model + fixed batch size with padding.
 //
 // REBUILT 9/22/26 — the repo's copy had been overwritten by the patch text.

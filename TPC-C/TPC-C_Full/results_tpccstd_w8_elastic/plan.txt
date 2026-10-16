@@ -1,0 +1,38 @@
+[Capacity]  partition:  real=100000  noisy=99999  dummy=0  noise_stash_reserve=1  ORAM_tree_size=99999
+[Capacity]  partition:  real=100000  noisy=99999  dummy=0  noise_stash_reserve=1  ORAM_tree_size=99999
+[Capacity]  partition:  real=100000  noisy=100000  dummy=0  noise_stash_reserve=0  ORAM_tree_size=100000
+[Capacity]  partition:  real=100000  noisy=100006  dummy=6  noise_stash_reserve=0  ORAM_tree_size=100006
+[Capacity]  partition:  real=100000  noisy=100000  dummy=0  noise_stash_reserve=0  ORAM_tree_size=100000
+[Capacity]  partition:  real=100000  noisy=100000  dummy=0  noise_stash_reserve=0  ORAM_tree_size=100000
+[Capacity]  partition:  real=100000  noisy=100001  dummy=1  noise_stash_reserve=0  ORAM_tree_size=100001
+[Capacity]  partition:  real=100000  noisy=100010  dummy=10  noise_stash_reserve=0  ORAM_tree_size=100010
+W=8 m=1 T=50000 eps=0.5 -> K=8 (expected 8)
+  partition 0: warehouses 1  (100000 rows)
+  partition 1: warehouses 2  (100000 rows)
+  partition 2: warehouses 3  (100000 rows)
+  partition 3: warehouses 4  (100000 rows)
+  partition 4: warehouses 5  (100000 rows)
+  partition 5: warehouses 6  (100000 rows)
+  partition 6: warehouses 7  (100000 rows)
+  partition 7: warehouses 8  (100000 rows)
+[Capacity]  partition:  real=200000  noisy=200009  dummy=9  noise_stash_reserve=0  ORAM_tree_size=200009
+[Capacity]  partition:  real=200000  noisy=200004  dummy=4  noise_stash_reserve=0  ORAM_tree_size=200004
+[Capacity]  partition:  real=200000  noisy=200001  dummy=1  noise_stash_reserve=0  ORAM_tree_size=200001
+[Capacity]  partition:  real=200000  noisy=200002  dummy=2  noise_stash_reserve=0  ORAM_tree_size=200002
+W=8 m=2 T=150000 eps=0.5 -> K=4 (expected 4)
+  partition 0: warehouses 1 2  (200000 rows)
+  partition 1: warehouses 3 4  (200000 rows)
+  partition 2: warehouses 5 6  (200000 rows)
+  partition 3: warehouses 7 8  (200000 rows)
+[Capacity]  partition:  real=300000  noisy=300017  dummy=17  noise_stash_reserve=0  ORAM_tree_size=300017
+[Capacity]  partition:  real=300000  noisy=300002  dummy=2  noise_stash_reserve=0  ORAM_tree_size=300002
+[Capacity]  partition:  real=200000  noisy=199997  dummy=0  noise_stash_reserve=3  ORAM_tree_size=199997
+W=8 m=3 T=250000 eps=0.5 -> K=3 (expected 3)
+  partition 0: warehouses 1 2 3  (300000 rows)
+  partition 1: warehouses 4 5 6  (300000 rows)
+  partition 2: warehouses 7 8  (200000 rows)
+[Capacity]  partition:  real=400000  noisy=399989  dummy=0  noise_stash_reserve=11  ORAM_tree_size=399989
+[Capacity]  partition:  real=400000  noisy=399993  dummy=0  noise_stash_reserve=7  ORAM_tree_size=399993
+W=8 m=4 T=350000 eps=0.5 -> K=2 (expected 2)
+  partition 0: warehouses 1 2 3 4  (400000 rows)
+  partition 1: warehouses 5 6 7 8  (400000 rows)

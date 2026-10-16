@@ -1,0 +1,6 @@
+system,offered_txn_s,txn_type,committed,aborted_attempts,latency_p50_ms,latency_p95_ms,e2e_p50_ms,e2e_p95_ms,ops_per_committed
+obladi,60,NewOrder,400,5827,9710.22,41002.2,9710.33,42879,45.86
+obladi,60,Payment,177,6241,8795.67,35584.4,8795.69,43530.5,7
+obladi,60,OrderStatus,50,473,14008.9,23547.2,14009.1,23547.4,12.16
+obladi,60,Delivery,547,4485,9916.12,50477.2,10286.6,53339.9,32.0402
+obladi,60,StockLevel,70,446,20622.2,48734.1,20905.6,49651.4,397.1

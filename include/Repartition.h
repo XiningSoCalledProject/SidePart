@@ -1,5 +1,4 @@
 //
-// Created by Xining Yuan on 7/15/25.
 // REDESIGNED: Two partitioning strategies based on max_partitions parameter
 // v2 (4/17/26): BinInfo now carries noised_synopsis (public) alongside raw
 //               synopsis (private). This is the "Public" bar chart in the

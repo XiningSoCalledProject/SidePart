@@ -1,5 +1,4 @@
 //
-// Created by Xining Yuan on 2/18/26.
 // Modified: per-server process model + fixed batch size with padding
 //
 // Architecture

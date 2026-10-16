@@ -1,5 +1,5 @@
 //
-// DePart_TPCC_Driver.h — wires the DePart T1–T8 workload into the proxy:
+// SidePart_TPCC_Driver.h — wires the DePart T1–T8 workload into the proxy:
 //
 //   generator request (txn_type, params)
 //     → push_txn()                      (QueriesReceiving intake)
