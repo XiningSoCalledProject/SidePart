@@ -1,7 +1,3 @@
-//
-// Created by Xining Yuan on 9/21/23.
-//
-
 #ifndef SEAL_ORAM_NETIO_GENERATE_DATA_H
 #define SEAL_ORAM_NETIO_GENERATE_DATA_H
 

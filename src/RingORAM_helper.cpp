@@ -1,6 +1,3 @@
-//
-// Created by Xining Yuan on 7/23/25.
-//
 #include "RingORAM.h"
 #include "RingORAM_helper.h"
 #include "NetIOConnector.h"

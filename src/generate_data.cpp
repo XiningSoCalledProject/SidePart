@@ -1,12 +1,9 @@
-//
-// Created by Xining Yuan on 9/21/23.
-//
 /*
  * This file is released under the terms of the Artistic License.
  * Please see the file LICENSE, included in this package, for details.
  *
  * Copyright (C) 2002 Open Source Development Labs, Inc.
- *               2002-2010 Mark Wong
+ *               2002-2010 by anonymous person;
  *
  * Based on TPC-C Standard Specification Revision 5.0.
  */

@@ -1,8 +1,5 @@
 //
 // RingORAM_main.cpp - FIXED VERSION
-// Created by Xining Yuan on 6/12/25.
-//
-
 // #include "RingORAM_helper.cpp"
 #include "RingORAM_helper.h"
 #include "Config.h"

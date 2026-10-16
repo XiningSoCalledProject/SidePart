@@ -1,7 +1,3 @@
-//
-// Created by Xining Yuan on 9/17/23.
-//
-
 #ifndef SEAL_ORAM_NETIO_CSV_READER_H
 #define SEAL_ORAM_NETIO_CSV_READER_H
 

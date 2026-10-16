@@ -1,7 +1,3 @@
-//
-// Created by Xining Yuan on 2/4/24.
-//
-
 #include "csv_reader.h"
 #include <sstream>
 #include <unordered_map>

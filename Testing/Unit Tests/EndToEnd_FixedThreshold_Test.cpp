@@ -1,8 +1,5 @@
 //
 // EndToEnd_FixedThreshold_Test.cpp  —  Fixed-Threshold (Algorithm 2)
-//
-// Created by Xining Yuan on 2/24/26.
-//
 // Post-processing: Fixed-Threshold (use_fixed_partition_count = false)
 //   The DP-noised threshold T determines partition boundaries.
 //   Number of partitions is decided by the algorithm, NOT forced to k.
